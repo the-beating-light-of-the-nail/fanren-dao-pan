@@ -93,6 +93,28 @@ _ep_lock = threading.Lock()
 _episodes_cache: Optional[dict] = None
 
 
+def _stamp_pubdate(eps: list[dict]) -> None:
+    """给剧集表盖上上市日 pub（unix 秒）：season 接口的 pub_time，与 view 接口
+    的 pubdate 同源同值（抽样差 0~10 秒）。meta 缓存键可能是 int（实时）或
+    str（仓库缓存水合）；meta 拿不到时保留磁盘旧值，避免新集上市瞬间丢字段。"""
+    pubs: dict = {}
+    try:
+        pubs = _season_meta()[0] or {}
+    except Exception:  # noqa: BLE001  上市日补不齐不影响剧集表本身
+        pass
+    prev: dict = {}
+    try:
+        if EP_CACHE_FILE.exists():
+            old = json.loads(EP_CACHE_FILE.read_text(encoding="utf-8"))
+            prev = {e.get("aid"): e.get("pub") for e in old.get("episodes") or [] if e.get("pub")}
+    except Exception:  # noqa: BLE001
+        pass
+    for e in eps:
+        aid = e.get("aid")
+        m = pubs.get(aid) or pubs.get(str(aid)) or {}
+        e["pub"] = int(m.get("pub") or prev.get(aid) or 0)
+
+
 def load_episodes(force: bool = False) -> dict:
     """剧集表：优先 B 站实时 → 磁盘缓存 → 离线兜底（换番剧删 data/episodes.json 即可）。"""
     global _episodes_cache
@@ -102,6 +124,7 @@ def load_episodes(force: bool = False) -> dict:
         err = ""
         try:
             info, eps = bilibili.fetch_season(SEASON_ID)
+            _stamp_pubdate(eps)
             data = {"source": "bilibili", "title": info.get("title") or "凡人修仙传",
                     "season_id": SEASON_ID, "episodes": eps}
             EP_CACHE_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -115,8 +138,8 @@ def load_episodes(force: bool = False) -> dict:
             data["error"] = err
             _episodes_cache = data
             return data
-        eps = [{"ep_index": i, "aid": None, "bvid": "", "title": f"第{i}话", "badge": ""}
-               for i in range(1, 190)]
+        eps = [{"ep_index": i, "aid": None, "bvid": "", "title": f"第{i}话", "badge": "",
+                "pub": 0} for i in range(1, 190)]
         _episodes_cache = {"source": "fallback", "title": "凡人修仙传（离线兜底）",
                            "season_id": SEASON_ID, "episodes": eps, "error": err}
         return _episodes_cache

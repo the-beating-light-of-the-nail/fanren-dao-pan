@@ -79,6 +79,7 @@ def export_all() -> None:
     eps_list = server.load_episodes()["episodes"]
     titles = {e["ep_index"]: e["title"] for e in eps_list}
     aids = {e["ep_index"]: e.get("aid") for e in eps_list}
+    pubs = {e["ep_index"]: e.get("pub") or 0 for e in eps_list}
 
     with server._lock:
         rows = server.db().execute(
@@ -99,7 +100,8 @@ def export_all() -> None:
             old.unlink()
     for ep, rlist in sorted(per_ep.items()):
         (EPS_DIR / f"ep-{ep}.json").write_text(json.dumps(
-            {"ep": ep, "aid": aids.get(ep), "title": titles.get(ep, ""), "rows": rlist},
+            {"ep": ep, "aid": aids.get(ep), "pub": pubs.get(ep, 0),
+             "title": titles.get(ep, ""), "rows": rlist},
             ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
     derived = {
