@@ -121,9 +121,9 @@ window.FanrenCompute = (function () {
     return base;
   }
 
-  /* 上市日对齐（D+N）序列 —— 逐行移植 server._compute_dn 的口径（时区同样钉死
+  /* 开播日对齐（D+N）序列 —— 逐行移植 server._compute_dn 的口径（时区同样钉死
      Asia/Shanghai）：同日自采优先、每日取最接近日中的一快照（最近一天取最新）、
-     相邻日跨度 0.85~1.15 天才算一日增量。供老集（无上市行情、只有长尾段）
+     相邻日跨度 0.85~1.15 天才算一日增量。供老集（无开播行情、只有长尾段）
      懒加载时在浏览器端现算，与 dn.json 里服务端算好的 28 集完全同口径。 */
   function dn(epFile, maxDay = 1400) {
     const pub = epFile.pub || 0;

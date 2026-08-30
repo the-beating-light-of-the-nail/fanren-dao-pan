@@ -94,13 +94,13 @@ _episodes_cache: Optional[dict] = None
 
 
 def _stamp_pubdate(eps: list[dict]) -> None:
-    """给剧集表盖上上市日 pub（unix 秒）：season 接口的 pub_time，与 view 接口
+    """给剧集表盖上开播日 pub（unix 秒）：season 接口的 pub_time，与 view 接口
     的 pubdate 同源同值（抽样差 0~10 秒）。meta 缓存键可能是 int（实时）或
-    str（仓库缓存水合）；meta 拿不到时保留磁盘旧值，避免新集上市瞬间丢字段。"""
+    str（仓库缓存水合）；meta 拿不到时保留磁盘旧值，避免新集开播瞬间丢字段。"""
     pubs: dict = {}
     try:
         pubs = _season_meta()[0] or {}
-    except Exception:  # noqa: BLE001  上市日补不齐不影响剧集表本身
+    except Exception:  # noqa: BLE001  开播日补不齐不影响剧集表本身
         pass
     prev: dict = {}
     try:
@@ -499,11 +499,11 @@ def _season_meta() -> tuple[dict, list]:
 
 
 def _compute_dn(max_day: int = 180) -> dict:
-    """上市日对齐（D+N）序列：每集日增/累计播放按「上市第 N 天」重排，供多集叠加对比。
+    """开播日对齐（D+N）序列：每集日增/累计播放按「开播第 N 天」重排，供多集叠加对比。
 
     口径与 K 线一致：同日自采(real)优先、每日取最接近日中的一条快照；
     相邻日快照跨度 0.85~1.15 天才计为一日增量，否则该日增量置空（缺日不给猜）。
-    只收首条快照距上市 ≤30 天的集：回填墙(2025-10-23)前开播的老集没有上市
+    只收首条快照距开播 ≤30 天的集：回填墙(2025-10-23)前开播的老集没有开播
     初期行情，不参与对比。series 行：[N天, 日增万|None, 累计万, 回填标记]。"""
     eps = {e["ep_index"]: e for e in load_episodes()["episodes"]}
     with _lock:
@@ -526,7 +526,7 @@ def _compute_dn(max_day: int = 180) -> dict:
         real_days = {day_key(t) for t, _v, s in items if s == "real"}
         items = [(t, v, s) for t, v, s in items
                  if s != "import" or day_key(t) not in real_days]
-        if not items or (items[0][0] - pub) / 86400 > 30:  # 首见即上市满月后：纯长尾段
+        if not items or (items[0][0] - pub) / 86400 > 30:  # 首见即开播满月后：纯长尾段
             continue
         by_day: dict[str, list] = {}
         for t, v, s in items:
@@ -534,7 +534,7 @@ def _compute_dn(max_day: int = 180) -> dict:
         days = sorted(by_day.items())
         daily = []
         for i, (_d, lst) in enumerate(days):
-            if i == len(days) - 1:  # 最近一天取最新快照：新上市集的「今日」还在生长
+            if i == len(days) - 1:  # 最近一天取最新快照：新开播集的「今日」还在生长
                 daily.append(max(lst, key=lambda x: x[0]))
             else:  # 历史日取最接近日中的一快照，保证日增是完整 24h 口径
                 daily.append(min(lst, key=lambda x: abs(datetime.fromtimestamp(x[0]).hour - 12)))
@@ -556,14 +556,14 @@ def _compute_dn(max_day: int = 180) -> dict:
 
 @app.get("/api/dn")
 def api_dn():
-    """上市日对齐叠加序列（D+N）：多集「同日起跑」对比的数据源。"""
+    """开播日对齐叠加序列（D+N）：多集「同日起跑」对比的数据源。"""
     return _compute_dn()
 
 
 @app.get("/api/ep-file")
 def api_ep_file(ep: int):
     """单集原始快照序列（与静态部署 data/eps/ep-N.json 同形状）。
-    「数据对比」页签对无上市行情的老集做懒加载时，server 模式走这里。"""
+    「数据对比」页签对无开播行情的老集做懒加载时，server 模式走这里。"""
     eps = load_episodes()["episodes"]
     if not 1 <= ep <= len(eps):
         raise HTTPException(404, f"ep={ep} 超出范围 1..{len(eps)}")
@@ -773,19 +773,19 @@ def _compute_review() -> dict:
                  "午后持续走强" if peak_hour is not None and peak_hour >= 14 else "盘中稳步上行")
         parts.append(f"第{ep}集《{titles.get(ep, '')}》今日{shape}"
                      + (f"，日内高点出现在 {peak_hour} 点前后" if peak_hour is not None else ""))
-        # 新集上市天数（上市首周是爆发期）
+        # 新集开播天数（开播首周是爆发期）
         aid = next((e.get("aid") for e in eps_list if e["ep_index"] == ep), None)
         pub = (meta := _season_meta()[0].get(aid, {})).get("pub")
         if pub:
             age_days = (now - pub) / 86400.0
             if age_days <= 7:
-                parts.append(f"新集上市第{int(age_days) + 1}天，处于首周爆发期")
+                parts.append(f"新集开播第{int(age_days) + 1}天，处于首周爆发期")
         if y_inc:
             pctv = (today_inc - y_inc) / y_inc * 100
             parts.append(f"量能较昨日{'放大' if pctv >= 0 else '萎缩'} {abs(pctv):.0f}%"
                          f"（{_fmt(today_inc)} vs {_fmt(y_inc)}）")
         else:
-            parts.append("上市初期，量能对比待积累")
+            parts.append("开播初期，量能对比待积累")
         if ma5:
             up = today_inc >= ma5
             parts.append(f"{'站上' if up else '跌破'}5日均线（MA5 {_fmt(ma5)}）")

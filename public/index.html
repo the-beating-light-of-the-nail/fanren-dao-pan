@@ -390,12 +390,12 @@
     </div>
   </section>
 
-  <!-- ════════ Tab 3: 数据对比（多集按上市第 N 天叠加，数据层） ════════ -->
+  <!-- ════════ Tab 3: 数据对比（多集按开播第 N 天叠加，数据层） ════════ -->
   <section id="tab-dn" class="tab">
     <div class="opbanner" style="margin-bottom:2px">◈ 数据对比 · 同日起跑 —— 若按日历日期比，老集在长尾、新集在爆发，天生的不公平。故横轴重排为
-      <b>「上市第 N 天」</b>：每集取<b>自己开播后</b>的第 N 天同列相比——如同日播剧里「第一集的 8.30 对第二集的 8.31」，
+      <b>「开播第 N 天」</b>：每集取<b>自己开播后</b>的第 N 天同列相比——如同日播剧里「第一集的 8.30 对第二集的 8.31」，
       D+1 列就是各集各自的次日。凡人为周六档：189 的 8.30、188 的 8.23、176 的 1.5，皆是 D+1，并肩起跑。
-      第1-161集在 2025-10-23 回填墙前已开播、无上市初期行情，但<b>长尾段照样可比</b>——选中后按需加载，曲线自其首个可观测日起。</div>
+      第1-161集在 2025-10-23 回填墙前已开播、无开播初期行情，但<b>长尾段照样可比</b>——选中后按需加载，曲线自其首个可观测日起。</div>
     <div class="controls">
       <span class="tag real" id="dnBadge">对齐中…</span>
       <label>看法 <select id="selDnMode">
@@ -407,7 +407,7 @@
         <input type="number" id="dnJump" min="1" placeholder="集数"> 集
         <button id="dnJumpBtn">加入</button>
       </label>
-      <span class="muted" title="每条曲线横轴=各自上市第N天；虚线=回填口径（开源日更数据）">点选个股池（至多 8 只，老集懒加载） · 虚线=回填口径</span>
+      <span class="muted" title="每条曲线横轴=各自开播第N天；虚线=回填口径（开源日更数据）">点选个股池（至多 8 只，老集懒加载） · 虚线=回填口径</span>
     </div>
     <div class="epchips" id="dnChips"></div>
     <div id="dnChartWrap">
@@ -416,10 +416,10 @@
     </div>
     <div class="panel">
       <h3>起跑线数据表</h3>
-      <div class="note">口径：「两日存量」=上市满 48 小时累计播放；D+N 列=上市第 N 天的 24 小时日增（万）。
+      <div class="note">口径：「两日存量」=开播满 48 小时累计播放；D+N 列=开播第 N 天的 24 小时日增（万）。
         只有相邻日快照构成完整 24 小时窗口才计入日增——跨缺口多日的累计差<b>绝不折算成某一天的增量</b>。标 * 者为回填口径（其首日绝对值偏大，看形状勿抠数）。<br>
         为何多数曲线自 D+2/D+3 起：并非数据迟到——B 站不提供历史播放接口，这些集上线头两天的分日数据
-        当时未被任何数据源记录，此后也不会出现；本站小时级自采始于 2026-08-30，<b>自 ep189 起新集上市当天即有完整行情</b>。
+        当时未被任何数据源记录，此后也不会出现；本站小时级自采始于 2026-08-30，<b>自 ep189 起新集开播当天即有完整行情</b>。
         周六 11:00 为 B 站视频上线时刻（会员争先日）。</div>
       <div id="dnTable"></div>
     </div>
@@ -749,7 +749,7 @@ function renderStats() {
     `<div class="chip"><span>开坛之日</span><b>${since}</b><i>共 ${m.points} 个采样点</i></div>`;
 }
 
-/* ───── 数据对比（D+N 多集叠加：横轴=各自上市第 N 天） ───── */
+/* ───── 数据对比（D+N 多集叠加：横轴=各自开播第 N 天） ───── */
 const DN_COLORS = ["#d4a84b", "#5dbaaf", "#c93a37", "#3a8b5c", "#b48ead", "#d07a3a", "#5b8bd0", "#c76b95"];
 const DN_MAX = 8;
 const DN_BASE = 1704067200;  // 2024-01-01 UTC · 伪时间轴：第 N 天 = BASE + N*86400
@@ -783,7 +783,7 @@ async function loadDn() {
     return;
   }
   DN_DATA = d;
-  // 选池：dn.json 里的集有上市行情（服务端预计算）；其余为老集，选中时懒加载现算
+  // 选池：dn.json 里的集有开播行情（服务端预计算）；其余为老集，选中时懒加载现算
   const inPool = new Set(Object.keys(d.eps).map(Number));
   const all = (window._ALL_EPS || []).slice();
   const fresh = all.filter(e => inPool.has(e.ep_index));
@@ -803,13 +803,13 @@ async function loadDn() {
       b.dataset.ep = e.ep_index;
       if (isOld) {
         b.classList.add("old");
-        b.title = `${e.title || ""} · 回填墙前开播，无上市初期行情；选中后加载长尾段`;
+        b.title = `${e.title || ""} · 回填墙前开播，无开播初期行情；选中后加载长尾段`;
       } else b.title = e.title || "";
       b.addEventListener("click", () => toggleDnEp(e.ep_index));
       chips.appendChild(b);
     });
   };
-  mkGroup("有上市行情 · 曲线自上市日起", fresh, false);
+  mkGroup("有开播行情 · 曲线自开播日起", fresh, false);
   mkGroup("老集 · 长尾段（懒加载）", old, true);
   $("selDnMode").addEventListener("change", renderDn);
   $("dnZoom").addEventListener("click", () => {
@@ -881,7 +881,7 @@ function renderDn() {
     crosshair: { mode: 0 },
     localization: {
       locale: "zh-CN",
-      timeFormatter: t => "上市第 " + dnDay(t) + " 天",
+      timeFormatter: t => "开播第 " + dnDay(t) + " 天",
       priceFormatter: v => fmt(v * 1e4),
     },
   });
@@ -907,7 +907,7 @@ function renderDn() {
   setDnLegend(null, datas, null);
   if (dnZoomFull) dnChart.timeScale().fitContent();
   else {
-    try {  // 前程视野：聚焦上市后前 45 天的爆发段；点太少时退回全览
+    try {  // 前程视野：聚焦开播后前 45 天的爆发段；点太少时退回全览
       dnChart.timeScale().setVisibleRange({ from: DN_BASE, to: DN_BASE + 45 * 86400 });
     } catch (e) { dnChart.timeScale().fitContent(); }
   }
@@ -917,7 +917,7 @@ function renderDn() {
 function setDnLegend(day, datas, param) {
   const el = $("dnLegend");
   if (!datas.length) { el.innerHTML = ""; return; }
-  const head = day != null ? `<b>上市第 ${day} 天</b>　` : `<b>各集末点</b>　`;
+  const head = day != null ? `<b>开播第 ${day} 天</b>　` : `<b>各集末点</b>　`;
   el.innerHTML = head + datas.map(d => {
     let v = null;
     if (param && param.seriesData) { const pt = param.seriesData.get(d.s); v = pt ? pt.value : null; }
@@ -945,7 +945,7 @@ function renderDnTable() {
       }).join("") + `</tr>`;
   }).join("");
   $("dnTable").innerHTML = `<table class="mini">` +
-    `<tr><th>集数</th><th>上市日</th><th class="num">两日存量</th>` +
+    `<tr><th>集数</th><th>开播日</th><th class="num">两日存量</th>` +
     cols.map(n => `<th class="num">D+${n} 日增</th>`).join("") + `</tr>${rows}</table>`;
 }
 

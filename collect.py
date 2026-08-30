@@ -121,7 +121,7 @@ def export_all() -> None:
                          encoding="utf-8")
     DERIVED_FILE.write_text(json.dumps(derived, ensure_ascii=False, separators=(",", ":")),
                          encoding="utf-8")
-    # 上市日对齐（D+N）叠加序列：前端「上市对齐」页签的数据源
+    # 开播日对齐（D+N）叠加序列：前端「开播对齐」页签的数据源
     DN_FILE.write_text(json.dumps(server._compute_dn(), ensure_ascii=False,
                                   separators=(",", ":")), encoding="utf-8")
 
