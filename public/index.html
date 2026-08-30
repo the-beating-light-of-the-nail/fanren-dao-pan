@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0c0810">
+<meta name="theme-color" content="#131722">
 <title>凡人道盘 - 凡人修仙传非官方热度数据站 | B站播放K线分时行情</title>
 <meta name="description" content="凡人道盘，凡人修仙传非官方数据观测站。采集B站公开播放、投币、收藏数据，提供单集分时K线、热度走势、各集对比，道友的凡人行情终端。">
 <meta name="keywords" content="凡人修仙传,凡人修仙传播放量,凡人修仙传单集数据,凡人修仙传K线,凡人修仙传每集播放量,凡人修仙传分时数据,凡人道盘,慕兰之战,韩立,B站国漫热度">
@@ -26,22 +26,22 @@
 <style>
   /* ═══════════ 凡人道盘 · 修仙画风色彩体系 ═══════════ */
   :root {
-    --bg:        #0c0810;  /* 玄紫黑 · 洞府底色 */
-    --bg-panel:  #140d1c;  /* 面板底 · 卷轴面 */
-    --bg-deep:   #1a0f24;  /* 深  紫 · 选中态 / 网格线 */
-    --line:      #3d2646;  /* 暗  紫 · 阵法边框 */
-    --line-soft: #2a1b33;  /* 柔  紫 · 次级分隔 */
-    --gold:      #d4a84b;  /* 古  金 · 主强调（灵石 / 金丹） */
+    --bg:        #131722;  /* 深藏青 · 终端底色（TradingView 暗色同款，主流看盘标配） */
+    --bg-panel:  #1e222d;  /* 面板底 */
+    --bg-deep:   #2a2e39;  /* 深一档 · 选中态 */
+    --line:      #363a45;  /* 边框 */
+    --line-soft: #232733;  /* 次级分隔 */
+    --gold:      #d4a84b;  /* 古  金 · 品牌强调（金配藏青，经典金融配色） */
     --gold-dim:  #96793a;  /* 暗  金 · 弱化文字 */
-    --text:      #d8d0c4;  /* 米  白 · 正文 */
-    --text-sub:  #94849f;  /* 淡紫灰 · 次要文字 */
-    --text-mute: #6b5a7a;  /* 更  淡 · 注释 */
-    --up:        #c93a37;  /* 朱砂红 · 涨 */
-    --down:      #3a8b5c;  /* 翠玉绿 · 跌 */
-    --jade:      #5dbaaf;  /* 青  玉 */
-    /* 古风字体栈：优先系统中文字体，零网络开销，移动端即时生效 */
-    --font-gu: "STZhongsong", "STKaiti", "KaiTi", "楷体", "STSong", "SimSun", "宋体",
-               "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", serif;
+    --text:      #d1d4dc;  /* 浅灰白 · 正文（终端标准） */
+    --text-sub:  #8f97a3;  /* 灰  蓝 · 次要文字 */
+    --text-mute: #646b78;  /* 更  淡 · 注释 */
+    --up:        #f6465d;  /* 涨 · 终端红（A股惯例红涨） */
+    --down:      #2ebd85;  /* 跌 · 终端绿 */
+    --jade:      #26a69a;  /* 青绿 · TradingView 经典 */
+    /* 终端字体栈：系统无衬线中文，主流看盘软件同款观感 */
+    --font-gu: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "HarmonyOS Sans SC",
+               -apple-system, "Segoe UI", sans-serif;
     --font-num: Consolas, "Courier New", monospace;
   }
   * { box-sizing: border-box; margin: 0; }
@@ -138,8 +138,8 @@
     gap: 8px; flex-wrap: wrap; color: var(--gold); letter-spacing: .04em;
   }
   .opcard .anchor {
-    font-size: 12px; color: var(--down); background: rgba(58,139,92,.12);
-    border: 1px solid rgba(58,139,92,.35); border-radius: 3px; padding: 4px 10px; margin-bottom: 8px;
+    font-size: 12px; color: var(--down); background: rgba(46,189,133,.12);
+    border: 1px solid rgba(46,189,133,.35); border-radius: 3px; padding: 4px 10px; margin-bottom: 8px;
   }
   .opcard p { color: var(--text); }
   /* K 线 tab */
@@ -455,9 +455,9 @@
 <script>
 const $ = id => document.getElementById(id);
 /* ── 修仙画风调色板（与 CSS :root 变量保持一致） ── */
-const UP = "#c93a37", DOWN = "#3a8b5c";      /* 朱砂红 · 翠玉绿 */
-const GOLD = "#d4a84b", JADE = "#5dbaaf";    /* 古金 · 青玉 */
-const C_BG = "#0c0810", C_GRID = "#1a0f24", C_LINE = "#3d2646";
+const UP = "#f6465d", DOWN = "#2ebd85";      /* 涨红 · 跌绿（终端亮度，A股惯例） */
+const GOLD = "#d4a84b", JADE = "#26a69a";    /* 古金品牌 · 青绿 */
+const C_BG = "#131722", C_GRID = "#1e222d", C_LINE = "#363a45";
 const CFG = window.FANREN || { mode: "server" };
 const STATIC = CFG.mode === "static";
 let DERIVED = null; // 静态模式：/data/derived.json（总览/收评/榜单/剧集表）
@@ -643,7 +643,7 @@ function render() {
   const wrap = $("chart");
   chart = LightweightCharts.createChart(wrap, {
     width: wrap.clientWidth, height: wrap.clientHeight,
-    layout: { background: { type: "solid", color: C_BG }, textColor: "#94849f", fontSize: 12 },
+    layout: { background: { type: "solid", color: C_BG }, textColor: "#8f97a3", fontSize: 12 },
     grid: { vertLines: { color: C_GRID }, horzLines: { color: C_GRID } },
     rightPriceScale: { borderColor: C_LINE },
     timeScale: { borderColor: C_LINE, timeVisible: current.mode === "intraday", secondsVisible: false, rightOffset: 4 },
@@ -688,7 +688,7 @@ function render() {
     let prevBar = null;
     mainSeries.setData(bars.map(b => {
       const color = (prevBar == null || b.value >= prevBar)
-        ? "rgba(201,58,55,0.80)" : "rgba(58,139,92,0.80)";
+        ? "rgba(246,70,93,0.85)" : "rgba(46,189,133,0.85)";
       prevBar = b.value;
       return { time: b.time, value: b.value, color };
     }));
@@ -696,7 +696,7 @@ function render() {
   volSeries = chart.addHistogramSeries({ priceScaleId: "vol", priceFormat: priceFmt });
   volSeries.applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
   volSeries.setData(current.volume.map(v => ({
-    ...v, color: v.value >= 0 ? "rgba(201,58,55,0.45)" : "rgba(58,139,92,0.40)",
+    ...v, color: v.value >= 0 ? "rgba(246,70,93,0.45)" : "rgba(46,189,133,0.40)",
   })));
   const showMA = $("chkMA").checked;
   ma7Series = chart.addLineSeries({ color: GOLD, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
@@ -748,7 +748,7 @@ function renderStats() {
 }
 
 /* ───── 数据对比（D+N 多集叠加：横轴=各自开播第 N 天） ───── */
-const DN_COLORS = ["#d4a84b", "#5dbaaf", "#c93a37", "#3a8b5c", "#b48ead", "#d07a3a", "#5b8bd0", "#c76b95"];
+const DN_COLORS = ["#d4a84b", "#26a69a", "#f6465d", "#2ebd85", "#b48ead", "#e8863a", "#5b8bd0", "#d96ba0"];
 const DN_MAX = 8;
 const DN_BASE = 1704067200;  // 2024-01-01 UTC · 伪时间轴：第 N 天 = BASE + N*86400
 let DN_DATA = null, DN_SEL = [], dnChart = null, dnRo = null, dnZoomFull = false;
@@ -872,7 +872,7 @@ function renderDn() {
   if (dnRo) dnRo.disconnect();
   dnChart = LightweightCharts.createChart(wrap, {
     width: wrap.clientWidth, height: wrap.clientHeight,
-    layout: { background: { type: "solid", color: C_BG }, textColor: "#94849f", fontSize: 12 },
+    layout: { background: { type: "solid", color: C_BG }, textColor: "#8f97a3", fontSize: 12 },
     grid: { vertLines: { color: C_GRID }, horzLines: { color: C_GRID } },
     rightPriceScale: { borderColor: C_LINE },
     timeScale: { borderColor: C_LINE, rightOffset: 3, tickMarkFormatter: t => "D+" + dnDay(t) },
