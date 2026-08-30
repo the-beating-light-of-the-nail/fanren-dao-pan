@@ -11,6 +11,9 @@ window.FanrenCompute = (function () {
   function shDate(ts) {
     return new Date(ts * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" });
   }
+  function shHour(ts) {
+    return +new Date(ts * 1000).toLocaleString("en-GB", { timeZone: "Asia/Shanghai", hour: "2-digit", hour12: false });
+  }
   function mondayOf(dstr) { // 自然周桶 key = 周一日期
     const [y, m, d] = dstr.split("-").map(Number);
     const dt = new Date(Date.UTC(y, m - 1, d));
@@ -115,5 +118,41 @@ window.FanrenCompute = (function () {
     return base;
   }
 
-  return { kline, METRIC_LABELS };
+  /* 上市日对齐（D+N）序列 —— 逐行移植 server._compute_dn 的口径（时区同样钉死
+     Asia/Shanghai）：同日自采优先、每日取最接近日中的一快照（最近一天取最新）、
+     相邻日跨度 0.85~1.15 天才算一日增量。供老集（无上市行情、只有长尾段）
+     懒加载时在浏览器端现算，与 dn.json 里服务端算好的 28 集完全同口径。 */
+  function dn(epFile, maxDay = 1400) {
+    const pub = epFile.pub || 0;
+    const rows = epFile.rows || [];
+    const out = { pub, title: epFile.title || "", series: [] };
+    if (!pub || !rows.length) return out;
+    const realDays = new Set(rows.filter(r => r[8] === 1).map(r => shDate(r[0])));
+    const items = rows.filter(r => r[8] !== 0 || !realDays.has(shDate(r[0])))
+                      .map(r => [r[0], r[1], r[8]]);
+    const byDay = new Map();
+    for (const it of items) {
+      const k = shDate(it[0]);
+      (byDay.get(k) || byDay.set(k, []).get(k)).push(it);
+    }
+    const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+    const daily = days.map(([d, lst], i) =>
+      i === days.length - 1
+        ? lst.reduce((a, b) => (b[0] > a[0] ? b : a))
+        : lst.reduce((a, b) => Math.abs(shHour(b[0]) - 12) < Math.abs(shHour(a[0]) - 12) ? b : a));
+    let prev = null;
+    for (const [t, v, s] of daily) {
+      const n = Math.floor((t - pub) / 86400);
+      if (n > maxDay) break;
+      let gain = null;
+      if (prev && (t - prev[0]) / 86400 > 0.85 && (t - prev[0]) / 86400 < 1.15) {
+        gain = Math.round((v - prev[1]) / 1e3) / 10;  // 万，1 位小数
+      }
+      out.series.push([n, gain, Math.round(v / 1e3) / 10, s === 1 ? 0 : 1]);  // 与服务端同语义：1=回填
+      prev = [t, v];
+    }
+    return out;
+  }
+
+  return { kline, dn, METRIC_LABELS };
 })();

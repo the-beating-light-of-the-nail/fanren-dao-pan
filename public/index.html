@@ -166,16 +166,26 @@
     color: var(--text-sub); padding: 24px;
   }
   #empty .big { font-size: 17px; color: var(--gold); }
-  /* 上市对齐 tab（多集同日起跑叠加） */
-  .epchips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 0; }
+  /* 数据对比 tab（多集同日起跑叠加） */
+  .epchips {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 0;
+    max-height: 128px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .epchips .grpLbl { width: 100%; font-size: 11px; color: var(--text-mute); letter-spacing: .06em; margin-top: 2px; }
   .epchips button {
     background: var(--bg-deep); color: var(--text-sub); border: 1px solid var(--line-soft);
     border-radius: 3px; padding: 4px 10px; cursor: pointer;
     font-family: var(--font-gu); font-size: 12.5px;
   }
+  .epchips button.old { border-style: dashed; color: var(--text-mute); }
   .epchips button:hover { color: var(--gold); border-color: var(--line); }
   .epchips button.on { color: var(--gold); border-color: var(--gold); background: rgba(212,168,75,.08); }
   .epchips button.on::before { content: "◆ "; font-size: 10px; }
+  #dnZoom {
+    background: var(--bg-deep); color: var(--text-sub); border: 1px solid var(--line-soft);
+    border-radius: 3px; padding: 4px 10px; cursor: pointer; font-family: var(--font-gu); font-size: 12.5px;
+  }
+  #dnZoom:hover { color: var(--gold); }
   #dnChartWrap {
     position: relative; flex: 1; min-height: 380px; margin: 10px 16px 0;
     border: 1px dashed var(--line); border-radius: 3px; overflow: hidden;
@@ -276,7 +286,7 @@
 <nav class="tabs">
   <button data-tab="overview" class="active">大道盘</button>
   <button data-tab="kline">行情K线</button>
-  <button data-tab="dn">上市对齐</button>
+  <button data-tab="dn">数据对比</button>
   <button data-tab="opinions">◈ 收评专区</button>
   <button data-tab="dict">道典</button>
 </nav>
@@ -370,18 +380,20 @@
     </div>
   </section>
 
-  <!-- ════════ Tab 3: 上市对齐（多集同日起跑叠加，数据层） ════════ -->
+  <!-- ════════ Tab 3: 数据对比（多集按上市第 N 天叠加，数据层） ════════ -->
   <section id="tab-dn" class="tab">
-    <div class="opbanner" style="margin-bottom:2px">◈ 同日起跑 · 上市日对齐 —— 个股每日同一时刻开盘，日K天然同一起跑线；「集」这只票各有上市日，
-      故横轴重排为<b>上市第 N 天</b>：上周六上线的 189，其首日行情与 176 当年上线首日并肩而立，方为公平。
-      第1-161集在 2025-10-23 回填墙前已开播、无上市初期行情，不参与对比——本站不给猜。</div>
+    <div class="opbanner" style="margin-bottom:2px">◈ 数据对比 · 同日起跑 —— 若按日历日期比，老集在长尾、新集在爆发，天生的不公平。故横轴重排为
+      <b>「上市第 N 天」</b>：每集取<b>自己开播后</b>的第 N 天同列相比——如同日播剧里「第一集的 8.30 对第二集的 8.31」，
+      D+1 列就是各集各自的次日。凡人为周六档：189 的 8.30、188 的 8.23、176 的 1.5，皆是 D+1，并肩起跑。
+      第1-161集在 2025-10-23 回填墙前已开播、无上市初期行情，但<b>长尾段照样可比</b>——选中后按需加载，曲线自其首个可观测日起。</div>
     <div class="controls">
       <span class="tag real" id="dnBadge">对齐中…</span>
       <label>看法 <select id="selDnMode">
         <option value="inc" selected>日增播放 · 谁的爆发猛</option>
         <option value="total">累计播放 · 谁的底盘厚</option>
       </select></label>
-      <span class="muted" title="每条曲线横轴=各自上市第N天；虚线=回填口径（开源日更数据）">点选个股池（至多 8 只） · 虚线=回填口径</span>
+      <button id="dnZoom" title="在前 45 天爆发段与全生命周期之间切换视野">视野 · 全览</button>
+      <span class="muted" title="每条曲线横轴=各自上市第N天；虚线=回填口径（开源日更数据）">点选个股池（至多 8 只，老集懒加载） · 虚线=回填口径</span>
     </div>
     <div class="epchips" id="dnChips"></div>
     <div id="dnChartWrap">
@@ -391,8 +403,10 @@
     <div class="panel">
       <h3>起跑线数据表</h3>
       <div class="note">口径：「两日存量」=上市满 48 小时累计播放；D+N 列=上市第 N 天的 24 小时日增（万）。
-        标 * 者为回填口径（其首日绝对值偏大，看形状勿抠数）。多数集上线头 1-2 日未被当时的日更数据收录
-        （首见常为周一），曲线自 D+2 起步——真实缺失，不做补猜。周六 11:00 为 B 站视频上线时刻（会员争先日）。</div>
+        只有相邻日快照构成完整 24 小时窗口才计入日增——跨缺口多日的累计差<b>绝不折算成某一天的增量</b>。标 * 者为回填口径（其首日绝对值偏大，看形状勿抠数）。<br>
+        为何多数曲线自 D+2/D+3 起：并非数据迟到——B 站不提供历史播放接口，这些集上线头两天的分日数据
+        当时未被任何数据源记录，此后也不会出现；本站小时级自采始于 2026-08-30，<b>自 ep189 起新集上市当天即有完整行情</b>。
+        周六 11:00 为 B 站视频上线时刻（会员争先日）。</div>
       <div id="dnTable"></div>
     </div>
   </section>
@@ -451,7 +465,7 @@ document.querySelectorAll(".tabs button").forEach(btn => {
     document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b === btn));
     document.querySelectorAll(".tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + btn.dataset.tab));
     if (btn.dataset.tab === "kline" && pendingRender && current) { pendingRender = false; render(); }
-    if (btn.dataset.tab === "dn" && dnPending) { dnPending = false; renderDn(); }
+    if (btn.dataset.tab === "dn" && !DN_DATA) loadDn();
   });
 });
 
@@ -577,7 +591,7 @@ async function boot() {
     loadOverview(); loadLatest(); loadReview(); pollStatus();
   }
   renderOpinions(); renderDict();
-  loadDn();              // 上市对齐页签数据（异步，不阻塞K线）
+  window._ALL_EPS = d.episodes;  // 数据对比页签选池（189 集全量；首次切到该 tab 时懒加载）
   await load();          // 数据先取好
   pendingRender = true;  // K 线在首次切到该 tab 时渲染（隐藏容器尺寸为 0）
 }
@@ -700,48 +714,92 @@ function renderStats() {
     `<div class="chip"><span>开坛之日</span><b>${since}</b><i>共 ${m.points} 个采样点</i></div>`;
 }
 
-/* ───── 上市对齐（D+N 多集叠加：横轴=各自上市第 N 天） ───── */
+/* ───── 数据对比（D+N 多集叠加：横轴=各自上市第 N 天） ───── */
 const DN_COLORS = ["#d4a84b", "#5dbaaf", "#c93a37", "#3a8b5c", "#b48ead", "#d07a3a", "#5b8bd0", "#c76b95"];
 const DN_MAX = 8;
 const DN_BASE = 1704067200;  // 2024-01-01 UTC · 伪时间轴：第 N 天 = BASE + N*86400
-let DN_DATA = null, DN_SEL = [], dnChart = null, dnRo = null, dnPending = false;
+let DN_DATA = null, DN_SEL = [], dnChart = null, dnRo = null, dnZoomFull = false;
+const dnLoading = new Set();
 const dnDay = t => Math.round((t - DN_BASE) / 86400);
 
 async function loadDn() {
   const d = STATIC ? await fetchJSON(`/data/dn.json?t=${Date.now()}`)
     : await (await fetch("/api/dn")).json().catch(() => null);
   if (!d || !d.eps || !Object.keys(d.eps).length) {
-    $("dnBadge").textContent = "对齐数据未就绪（静候下轮周天采集）";
+    $("dnBadge").textContent = "对比数据未就绪（静候下轮周天采集）";
     $("dnBadge").className = "tag none";
     return;
   }
   DN_DATA = d;
-  const keys = Object.keys(d.eps).map(Number).sort((a, b) => a - b);
-  DN_SEL = keys.slice(-6);  // 默认最近 6 集
+  // 选池：dn.json 里的集有上市行情（服务端预计算）；其余为老集，选中时懒加载现算
+  const inPool = new Set(Object.keys(d.eps).map(Number));
+  const all = (window._ALL_EPS || []).slice();
+  const fresh = all.filter(e => inPool.has(e.ep_index));
+  const old = all.filter(e => !inPool.has(e.ep_index) && e.pub);
+  DN_SEL = (fresh.length ? fresh : old).slice(-6).map(e => e.ep_index);
   const chips = $("dnChips");
   chips.innerHTML = "";
-  keys.forEach(ep => {
-    const b = document.createElement("button");
-    b.textContent = `第${ep}集`;
-    b.dataset.ep = ep;
-    b.title = d.eps[ep].title || "";
-    b.addEventListener("click", () => toggleDnEp(ep));
-    chips.appendChild(b);
-  });
+  const mkGroup = (label, arr, isOld) => {
+    if (!arr.length) return;
+    const lbl = document.createElement("span");
+    lbl.className = "grpLbl";
+    lbl.textContent = `── ${label} · ${arr.length} 集 ──`;
+    chips.appendChild(lbl);
+    arr.forEach(e => {
+      const b = document.createElement("button");
+      b.textContent = `第${e.ep_index}集`;
+      b.dataset.ep = e.ep_index;
+      if (isOld) {
+        b.classList.add("old");
+        b.title = `${e.title || ""} · 回填墙前开播，无上市初期行情；选中后加载长尾段`;
+      } else b.title = e.title || "";
+      b.addEventListener("click", () => toggleDnEp(e.ep_index));
+      chips.appendChild(b);
+    });
+  };
+  mkGroup("有上市行情 · 曲线自上市日起", fresh, false);
+  mkGroup("老集 · 长尾段（懒加载）", old, true);
   $("selDnMode").addEventListener("change", renderDn);
+  $("dnZoom").addEventListener("click", () => {
+    dnZoomFull = !dnZoomFull;
+    $("dnZoom").textContent = dnZoomFull ? "视野 · 前程" : "视野 · 全览";
+    renderDn();
+  });
   refreshDnChips();
   const g = d.updated_ts ? new Date(d.updated_ts * 1000).toLocaleString("zh-CN", { hour12: false }) : "--";
-  $("dnBadge").textContent = `同日起跑 · ${keys.length} 只有上市行情 · ${g}`;
+  $("dnBadge").textContent = `同日起跑 · 全 ${all.length} 集可选 · ${g}`;
   $("dnBadge").className = "tag real";
-  dnPending = true;  // 隐藏容器尺寸为 0，首次切到该 tab 时再渲染
-  if ($("tab-dn").classList.contains("active")) { dnPending = false; renderDn(); }
+  renderDn();
 }
 
-function toggleDnEp(ep) {
+async function ensureDnEp(ep) {  // 老集：拉单集快照，浏览器端按同口径现算 D+N 序列
+  if (DN_DATA.eps[ep]) return true;
+  if (dnLoading.has(ep)) return false;
+  dnLoading.add(ep);
+  try {
+    const f = STATIC
+      ? await fetchJSON(`/data/eps/ep-${ep}.json?t=${Date.now()}`)
+      : await (await fetch(`/api/ep-file?ep=${ep}`)).json().catch(() => null);
+    const c = f && f.rows && f.rows.length ? FanrenCompute.dn(f) : null;
+    if (c && c.series.length) { DN_DATA.eps[ep] = c; return true; }
+    toast(`第${ep}集没有可对比的快照`, true);
+    return false;
+  } finally { dnLoading.delete(ep); }
+}
+
+async function toggleDnEp(ep) {
   const i = DN_SEL.indexOf(ep);
   if (i >= 0) DN_SEL.splice(i, 1);
-  else if (DN_SEL.length >= DN_MAX) { toast(`至多同列 ${DN_MAX} 只，先取消一只再选`, true); return; }
-  else DN_SEL.push(ep);
+  else {
+    if (DN_SEL.length >= DN_MAX) { toast(`至多同列 ${DN_MAX} 只，先取消一只再选`, true); return; }
+    if (!(await ensureDnEp(ep))) return;
+    DN_SEL.push(ep);
+    const s = DN_DATA.eps[ep].series;   // 老集起点远在前程视野之外时，自动切到全览
+    if (s.length && s[0][0] > 45 && !dnZoomFull) {
+      dnZoomFull = true;
+      $("dnZoom").textContent = "视野 · 前程";
+    }
+  }
   refreshDnChips();
   renderDn();
 }
@@ -751,11 +809,17 @@ function refreshDnChips() {
     b.classList.toggle("on", DN_SEL.includes(+b.dataset.ep)));
 }
 
+let dnRenderTries = 0;
 function renderDn() {
   if (!DN_DATA) return;
+  const wrap = $("dnChart");
+  if (!wrap.clientWidth) {  // tab 未可见时尺寸为 0，等可见再画（限次防自旋）
+    if (dnRenderTries++ < 120) requestAnimationFrame(renderDn);
+    return;
+  }
+  dnRenderTries = 0;
   if (dnChart) { dnChart.remove(); dnChart = null; }
   if (dnRo) dnRo.disconnect();
-  const wrap = $("dnChart");
   dnChart = LightweightCharts.createChart(wrap, {
     width: wrap.clientWidth, height: wrap.clientHeight,
     layout: { background: { type: "solid", color: C_BG }, textColor: "#94849f", fontSize: 12 },
@@ -789,9 +853,12 @@ function renderDn() {
   });
   dnChart.subscribeCrosshairMove(p => setDnLegend(p.time ? dnDay(p.time) : null, datas, p));
   setDnLegend(null, datas, null);
-  try {  // 默认聚焦上市后前 45 天的爆发段；点太少时退回全览
-    dnChart.timeScale().setVisibleRange({ from: DN_BASE, to: DN_BASE + 45 * 86400 });
-  } catch (e) { dnChart.timeScale().fitContent(); }
+  if (dnZoomFull) dnChart.timeScale().fitContent();
+  else {
+    try {  // 前程视野：聚焦上市后前 45 天的爆发段；点太少时退回全览
+      dnChart.timeScale().setVisibleRange({ from: DN_BASE, to: DN_BASE + 45 * 86400 });
+    } catch (e) { dnChart.timeScale().fitContent(); }
+  }
   renderDnTable();
 }
 

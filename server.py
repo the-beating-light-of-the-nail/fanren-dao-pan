@@ -557,6 +557,24 @@ def api_dn():
     return _compute_dn()
 
 
+@app.get("/api/ep-file")
+def api_ep_file(ep: int):
+    """单集原始快照序列（与静态部署 data/eps/ep-N.json 同形状）。
+    「数据对比」页签对无上市行情的老集做懒加载时，server 模式走这里。"""
+    eps = load_episodes()["episodes"]
+    if not 1 <= ep <= len(eps):
+        raise HTTPException(404, f"ep={ep} 超出范围 1..{len(eps)}")
+    e = eps[ep - 1]
+    with _lock:
+        rows = db().execute(
+            "SELECT ts, views, danmaku, reply, coin, likes, favorite, share, source"
+            " FROM snapshots WHERE ep_index=? ORDER BY ts", (ep,)).fetchall()
+    return {"ep": ep, "aid": e.get("aid"), "pub": e.get("pub") or 0,
+            "title": e.get("title") or "",
+            "rows": [[t, v, dm, rp, cn, lk, fv, sh, 1 if s == "real" else 0]
+                     for t, v, dm, rp, cn, lk, fv, sh, s in rows]}
+
+
 @app.get("/api/overview")
 def api_overview():
     """数据总览：全剧总量、半年度走势（折算满龄）、篇章互动率、留存漏斗。全部来自真实快照。"""
