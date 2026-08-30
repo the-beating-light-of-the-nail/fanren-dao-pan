@@ -1,0 +1,49 @@
+name: 定时采集B站快照
+
+# 数据管线：每 2 小时一轮全量快照（189 集 × 1.2s/集 礼貌间隔），提交 data/site/*.json。
+# 频率是合规红线的一部分，严禁调密。时区钉死上海，保证日线分桶口径稳定。
+
+on:
+  schedule:
+    - cron: '13 1-23/2 * * *'   # UTC 奇数小时 13 分 = 北京时间 9:13/11:13/…/次日 7:13
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 采集并导出
+        run: python collect.py
+
+      - name: 提交数据
+        run: |
+          git config user.name "fanren-bot"
+          git config user.email "fanren-bot@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "数据无变化，跳过提交"
+          else
+            git commit -m "data: 定时采集 $(date +'%F %H:%M')"
+            git push
+          fi

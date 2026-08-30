@@ -1,0 +1,11 @@
+# 本地开发产物
+.venv/
+__pycache__/
+*.pyc
+dist/
+.wrangler/
+.tmp*/
+tools/
+
+# SQLite 只是本地工作副本；部署侧事实源是 data/site/*.json（要提交）
+data/fanren.db

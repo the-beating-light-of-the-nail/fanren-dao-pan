@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>凡人道盘 - 凡人修仙传非官方热度数据站 | B站播放K线分时行情</title>
+<meta name="description" content="凡人道盘，凡人修仙传非官方数据观测站。采集B站公开播放、投币、收藏数据，提供单集分时K线、热度走势、各集对比，道友的凡人行情终端。">
+<meta name="keywords" content="凡人修仙传,凡人修仙传播放量,凡人修仙传单集数据,凡人修仙传K线,凡人修仙传每集播放量,凡人修仙传分时数据,凡人道盘,慕兰之战,韩立,B站国漫热度">
+<meta property="og:title" content="凡人道盘 - 凡人修仙传非官方热度K线数据站">
+<meta property="og:description" content="B站播放K线 · 分时行情 · 涨停板 · 每日收评｜周六开盘，道友盯盘">
+<meta property="og:type" content="website">
+<script src="vendor/lightweight-charts.standalone.production.js"></script>
+<script src="config.js"></script>
+<script src="compute.js"></script>
+<script src="opinions.js"></script>
+<script src="dictionary.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    display: flex; flex-direction: column;
+    background: #0d1117; color: #d7dee8;
+    font: 14px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 16px; background: #11161f; border-bottom: 1px solid #1f2733;
+  }
+  .brand { font-size: 17px; font-weight: 600; }
+  .brandWrap { display: flex; flex-direction: column; gap: 2px; }
+  .subtitle { font-size: 12px; color: #8b98a9; }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #1b2330; color: #8b98a9; }
+  .tag.fan { color: #e879a9; border: 1px solid #e879a955; }
+  .tag.real { color: #4ade80; }
+  .tag.none { color: #e6a23c; }
+  .tag.op { color: #f0b429; border: 1px solid #f0b42955; }
+  header .spacer { flex: 1; }
+  button {
+    background: #e14d57; color: #fff; border: 0; border-radius: 6px;
+    padding: 7px 14px; cursor: pointer; font-size: 13px;
+  }
+  button:disabled { opacity: .55; cursor: wait; }
+  .tabs { display: flex; gap: 4px; padding: 8px 16px 0; background: #0f141d; border-bottom: 1px solid #1f2733; }
+  .tabs button {
+    background: transparent; color: #8b98a9; padding: 8px 18px; border-radius: 8px 8px 0 0;
+    border: 1px solid transparent; border-bottom: 0; font-size: 14px;
+  }
+  .tabs button.active { background: #0d1117; color: #e879a9; border-color: #1f2733; }
+  main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .tab { display: none; flex: 1; flex-direction: column; min-height: 0; overflow-y: auto; padding-bottom: 12px; }
+  .tab.active { display: flex; }
+  .stats { display: flex; gap: 10px; padding: 12px 16px 0; flex-wrap: wrap; }
+  .chip {
+    display: flex; flex-direction: column; gap: 2px; background: #11161f;
+    border: 1px solid #1f2733; border-radius: 8px; padding: 8px 14px; min-width: 132px;
+  }
+  .chip span { color: #8b98a9; font-size: 12px; }
+  .chip b { font-size: 17px; }
+  .chip i { font-style: normal; font-size: 12px; color: #8b98a9; }
+  .chip.mini { flex-direction: row; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px; font-size: 12px; }
+  .strip { display: flex; gap: 8px; padding: 8px 16px 0; flex-wrap: wrap; }
+  .panel { margin: 12px 16px 0; background: #11161f; border: 1px solid #1f2733; border-radius: 10px; padding: 14px 16px; }
+  .panel h3 { font-size: 14px; color: #d7dee8; margin-bottom: 4px; }
+  .panel .note { font-size: 12px; color: #5c6875; margin-bottom: 10px; }
+  .barrow { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+  .barrow .lbl { width: 58px; color: #8b98a9; font-size: 12px; font-family: Consolas, monospace; flex: none; }
+  .barrow .bar { height: 16px; border-radius: 3px; background: linear-gradient(90deg, #b84d6f, #e879a9); min-width: 2px; }
+  .barrow .val { color: #d7dee8; font-size: 12px; font-family: Consolas, monospace; white-space: nowrap; }
+  .barrow .sub { color: #5c6875; font-size: 11px; white-space: nowrap; }
+  .fire { color: #f0b429; font-size: 11px; border: 1px solid #f0b42955; border-radius: 8px; padding: 0 6px; }
+  table.mini { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.mini th, table.mini td { padding: 5px 8px; text-align: left; border-bottom: 1px solid #1b2330; }
+  table.mini th { color: #8b98a9; font-weight: normal; }
+  table.mini td.num { font-family: Consolas, monospace; text-align: right; }
+  .opbanner {
+    margin: 12px 16px 0; padding: 10px 14px; border: 1px dashed #f0b42966;
+    border-radius: 10px; color: #f0b429; font-size: 13px; background: #16130922;
+  }
+  .opcard { margin: 12px 16px 0; background: #11161f; border: 1px solid #1f2733; border-radius: 10px; padding: 14px 16px; }
+  .opcard h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .opcard .anchor {
+    font-size: 12px; color: #7ee2a8; background: #16351f66; border: 1px solid #2c6e4466;
+    border-radius: 6px; padding: 4px 10px; margin-bottom: 8px;
+  }
+  .opcard p { color: #c3ccd9; }
+  /* K 线 tab */
+  .controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px 0; }
+  .controls label { display: flex; align-items: center; gap: 6px; color: #8b98a9; }
+  select { background: #161c26; color: #d7dee8; border: 1px solid #232c3a; border-radius: 6px; padding: 4px 8px; max-width: 260px; }
+  #chartWrap { position: relative; flex: 1; min-height: 380px; margin: 10px 16px 0; border: 1px solid #1f2733; border-radius: 10px; overflow: hidden; }
+  #chart { position: absolute; inset: 0; }
+  #legend { position: absolute; top: 8px; left: 10px; z-index: 5; font: 12px/1.7 Consolas, "Courier New", monospace; color: #aab4c3; pointer-events: none; text-shadow: 0 1px 2px #000c; }
+  #empty { position: absolute; inset: 0; z-index: 4; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; color: #8b98a9; padding: 24px; }
+  #empty .big { font-size: 17px; color: #d7dee8; }
+  footer { padding: 10px 16px; color: #5c6875; font-size: 12px; line-height: 1.8; }
+  .kwcloud { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .kwcloud span { font-size: 11px; color: #6b7686; background: #11161f; border: 1px solid #1f2733; border-radius: 8px; padding: 1px 8px; }
+  .muted { color: #5c6875; }
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #16351f; color: #7ee2a8; border: 1px solid #2c6e44; padding: 8px 18px; border-radius: 8px; opacity: 0; transition: .25s; pointer-events: none; max-width: 80vw; }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  #toast.bad { background: #3a1c20; color: #ff9aa4; border-color: #7a3038; }
+
+  /* ───── 表格容器：窄屏横向滑动 ───── */
+  #engTable, #retentionTable, #topTable, #limitupTable { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.mini { min-width: 480px; }
+  .dictquote { border-left: 3px solid #2c6e44; background: #11161f; border-radius: 6px; padding: 10px 14px; margin: 8px 0; }
+  .dictquote .q { color: #ff9aa4; margin-bottom: 6px; }
+  .dictquote .a { color: #7ee2a8; }
+
+  /* ───── 移动端适配（传播主场景：群聊/贴吧点开的就是手机） ───── */
+  @media (max-width: 768px) {
+    header { gap: 6px; padding: 8px 10px; }
+    .brand { font-size: 16px; }
+    .subtitle { font-size: 11px; }
+    #srcBadge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    header button { width: 100%; order: 9; padding: 9px 14px; }
+    .tabs { padding: 6px 10px 0; gap: 2px; }
+    .tabs button { flex: 1; padding: 8px 4px; font-size: 12.5px; white-space: nowrap; }
+    .controls { gap: 10px; padding: 8px 10px 0; }
+    .controls label { font-size: 12px; }
+    .controls label > select { max-width: 150px; }
+    .controls .muted { display: none; }  /* 长提示挪进 title，不占手机屏幕 */
+    .stats { gap: 6px; padding: 10px 10px 0; }
+    .chip { min-width: 0; flex: 1 1 40%; padding: 7px 10px; }
+    .chip b { font-size: 15px; }
+    .chip.mini { flex: 0 1 auto; }
+    .strip, .panel { margin-left: 10px; margin-right: 10px; padding: 12px; }
+    .panel h3 { font-size: 13.5px; }
+    .barrow .lbl { width: 48px; font-size: 11px; }
+    .barrow .sub { display: none; }  /* n=xx 小字手机上略去 */
+    #chartWrap { min-height: 340px; margin: 8px 10px 0; }
+    #legend { font-size: 11px; left: 6px; right: 6px; }
+    #empty .big { font-size: 15px; }
+    .opbanner { margin: 10px; font-size: 12px; }
+    .opcard { margin: 10px; padding: 12px; }
+    .opcard h4 { font-size: 14px; }
+    footer { padding: 8px 10px; font-size: 11px; }
+    #toast { max-width: 92vw; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brandWrap">
+    <h1 class="brand">📈 凡人道盘</h1>
+    <div class="subtitle">凡人修仙传｜非官方热度K线数据站｜周六开盘，道友盯盘</div>
+  </div>
+  <span class="tag" id="srcBadge">剧集表加载中…</span>
+  <div class="spacer"></div>
+  <span class="tag" id="autoBadge">自动采集</span>
+  <button id="btnRefresh">刷新数据</button>
+</header>
+
+<nav class="tabs">
+  <button data-tab="overview" class="active">大盘</button>
+  <button data-tab="kline">行情K线</button>
+  <button data-tab="opinions">📈收评专区</button>
+  <button data-tab="dict">词典</button>
+</nav>
+
+<main>
+  <!-- ════════ Tab 1: 数据总览（数据层，涨跌如实展示） ════════ -->
+  <section id="tab-overview" class="tab active">
+    <div class="panel" style="border-color:#2c6e4466">
+      <h3>📈 今日收评 <span class="tag real">自动生成 · 数字真实 · 语气玩梗</span></h3>
+      <div class="note">道友，今天盯盘了吗？收评由服务端按真实快照自动生成，每个数字都可点进K线验证。</div>
+      <p id="reviewText" style="color:#c3ccd9; line-height:1.9">生成中…</p>
+    </div>
+    <div class="stats" id="bigStats"></div>
+    <div class="strip" id="latestStrip"></div>
+    <div class="panel">
+      <h3>从开始到现在 · 每集热度走势</h3>
+      <div class="note">口径：每集累计播放按 V(t)=V∞·t/(t+60天) 折算到满年龄，消除老集长尾/新集未长大的偏差；原始中位数一并列出。数据为真实快照。</div>
+      <div id="trendBars"></div>
+    </div>
+    <div class="panel">
+      <h3>篇章互动率 · 弹幕/投币密度</h3>
+      <div class="note">弹幕密度 = 弹幕总数 ÷ 播放总数（篇章口径）。时间越久该值只会更高，因此新篇章反超老篇章是强信号。</div>
+      <div id="engTable"></div>
+    </div>
+    <div class="panel">
+      <h3>留存漏斗 · 各篇首集 / 第1集</h3>
+      <div class="note">核心观众规模六年几乎不变。</div>
+      <div id="retentionTable"></div>
+    </div>
+    <div class="panel">
+      <h3>🔥 历史涨停板 · 单日最大增量盘点</h3>
+      <div class="note">每集开播史上最猛的一天（真实快照计算）——名场面集在此现形。</div>
+      <div id="limitupTable"></div>
+    </div>
+    <div class="panel">
+      <h3>TOP10 榜单</h3>
+      <div class="note">取每集最近一条真实快照排序。</div>
+      <label style="margin-bottom:8px; color:#8b98a9">指标 <select id="selTop"></select></label>
+      <div id="topTable"></div>
+    </div>
+  </section>
+
+  <!-- ════════ Tab 2: 播放K线（数据层） ════════ -->
+  <section id="tab-kline" class="tab">
+    <div class="controls">
+      <span class="tag none" id="klineBadge">加载中…</span>
+      <label title="每一集都是一只个股">个股（集数） <select id="selEp"></select></label>
+      <label>指标
+        <select id="selMetric" title="K线画哪个指标的增量">
+          <option value="views" selected>播放量</option>
+          <option value="danmaku">弹幕</option>
+          <option value="likes">点赞</option>
+          <option value="coin">投币</option>
+          <option value="favorite">收藏</option>
+          <option value="share">分享</option>
+          <option value="reply">评论</option>
+        </select>
+      </label>
+      <label>模式
+        <select id="selMode">
+          <option value="inc" selected>日增播放 K线</option>
+          <option value="total">累计播放 K线</option>
+          <option value="intraday">当日分时</option>
+        </select>
+      </label>
+      <label>K线 <select id="selFreq" title="日K=每个采集日一根蜡烛；周K=按自然周聚合（key=周一日期）">
+        <option value="day" selected>日K</option>
+        <option value="week">周K</option>
+      </select></label>
+      <label>周期
+        <select id="selDays">
+          <option>7</option><option>30</option>
+          <option selected>90</option><option>180</option><option>365</option>
+        </select> 天
+      </label>
+      <label><input type="checkbox" id="chkMA" checked>
+        <span style="color:#f0b429">MA5</span> / <span style="color:#7c8ee0">MA10</span>
+      </label>
+      <span id="loading" class="muted"></span>
+      <span class="muted" title="2026-08-30 起为小时级自采；更早为开源仓库日更快照（无日内采样，开盘价衔接上一周期收盘）">蜡烛=1个采集日 · 新数据小时级采样 · 历史为日更粒度</span>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div id="chartWrap">
+      <div id="legend"></div>
+      <div id="chart"></div>
+      <div id="empty">
+        <div class="big">⏳ 这集还没有真实快照</div>
+        <div>本站<b>不伪造历史数据</b>（B 站不提供历史播放 API）。<br>
+          数据站定时自动采集（小时级）；同一集攒够 2 条以上快照，K 线就会开始生长。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Tab 3: 站长观点（观点层，全部标注个人观点） ════════ -->
+  <section id="tab-opinions" class="tab">
+    <div class="opbanner">⚠️ 以下是站长个人观点，带立场、可反驳。本站数据层与观点层相互独立：数据页涨跌如实展示，观点页只代表她自己。</div>
+    <div id="opinionCards"></div>
+  </section>
+
+  <!-- ════════ Tab 4: 词典（传播弹药库） ════════ -->
+  <section id="tab-dict" class="tab">
+    <div class="opbanner" style="border-color:#4ade8066; color:#4ade80">📖 凡人股民词典 · 梗是语气，数字是数据——玩梗请配合站内真实行情使用</div>
+    <div id="dictBody"></div>
+  </section>
+</main>
+
+<footer>
+  🔖 声明：凡人道盘为爱好者第三方统计工具，数据均来源于 B 站公开页面，本站无商业收益；与 B 站、凡人修仙传版权方无任何关联，仅供道友交流参考。外部链接为友情链接，与本站无关。<br>
+  数据口径：2026-08-30 起为自采小时级快照，更早历史来自开源项目 yansheng836/bilibili-Fanrenpc（MIT，日更粒度） · 「开盘/涨停/持有」均为玩梗，不构成任何真实投资建议 · 「收评专区」为站长个人立场 · 收到权利方通知将立即停止服务
+  <div class="kwcloud">
+    <span>凡人修仙传播放量</span><span>每集播放量</span><span>单集数据</span><span>分时数据</span>
+    <span>凡人修仙传K线</span><span>热度走势</span><span>各集对比</span><span>总播放量</span>
+    <span>投币收藏数据</span><span>慕兰之战播放量</span><span>24小时播放</span><span>B站国创热度</span>
+    <span>凡人道盘行情</span><span>凡人修仙传盘面</span><span>放量冲高</span><span>主升浪</span>
+    <span>历史行情</span><span>名场面集</span><span>道友</span><span>韩老魔</span>
+  </div>
+</footer>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const UP = "#ef4444", DOWN = "#22c55e";
+const CFG = window.FANREN || { mode: "server" };
+const STATIC = CFG.mode === "static";
+let DERIVED = null; // 静态模式：/data/derived.json（总览/收评/榜单/剧集表）
+const fetchJSON = async url => {
+  try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? await r.json() : null; }
+  catch (e) { return null; }
+};
+const fmt = n => (n == null || isNaN(n)) ? "--"
+  : n >= 1e8 ? (n / 1e8).toFixed(2) + "亿"
+  : n >= 1e4 ? (n / 1e4).toFixed(1) + "万"
+  : String(Math.round(n));
+const pct = p => p == null ? "--" : (p >= 0 ? "+" : "") + p.toFixed(1) + "%";
+const dt = ts => ts ? new Date(ts * 1000).toLocaleString("zh-CN", { hour12: false }) : "--";
+
+/* ───── Tabs ───── */
+let pendingRender = false;
+document.querySelectorAll(".tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + btn.dataset.tab));
+    if (btn.dataset.tab === "kline" && pendingRender && current) { pendingRender = false; render(); }
+  });
+});
+
+/* ───── 总览（fetch 与渲染分离：server 模式走 /api，static 模式读 DERIVED） ───── */
+function renderReview(d) {
+  if (!d) return;
+  if (d.review) {
+    $("reviewText").innerHTML =
+      `<b style="color:#4ade80">【${d.review.ep != null ? "第" + d.review.ep + "集" : "大盘"} · ${d.review.title || ""}】</b> ${d.review.text}`;
+  } else {
+    $("reviewText").textContent = "暂无数据，等待首轮采集。";
+  }
+  if (d.limitup && d.limitup.length) {
+    $("limitupTable").innerHTML = `<table class="mini"><tr><th>#</th><th>集数</th><th>标题</th><th>涨停日</th><th class="num">单日增量</th></tr>` +
+      d.limitup.map((x, i) =>
+        `<tr><td>${i + 1}</td><td>第${x.ep}集</td><td>${x.title || "--"}</td><td>${x.date}</td>` +
+        `<td class="num" style="color:#ef4444">+${fmt(x.inc)}</td></tr>`).join("") + `</table>`;
+  }
+}
+async function loadReview() {
+  try { renderReview(await (await fetch("/api/review")).json()); } catch (e) { /* 忽略 */ }
+}
+
+function renderOverview(d) {
+  if (!d || !d.ep_count) { $("bigStats").innerHTML = '<div class="chip"><span>真实快照</span><b>0 条</b><i>等待采集入库…</i></div>'; return; }    const le = d.latest_ep || {};
+    const years = (d.span_days / 365.25).toFixed(1);
+    $("bigStats").innerHTML =
+      `<div class="chip"><span>累计播放（主线${d.ep_count}集）</span><b>${fmt(d.totals.views)}</b><i>快照 ${dt(d.snapshot_ts)}</i></div>` +
+      `<div class="chip"><span>累计弹幕</span><b>${fmt(d.totals.danmaku)}</b><i>${years}年 · 每集热度见下</i></div>` +
+      `<div class="chip"><span>累计投币</span><b>${fmt(d.totals.coin)}</b><i>互动密度六年新高 🔥</i></div>` +
+      (le.ep ? `<div class="chip"><span>最新一集</span><b>第${le.ep}集</b><i>上线${le.age_hours >= 48 ? Math.round(le.age_hours/24) + "天" : Math.round(le.age_hours) + "小时"} · 已播 ${fmt(le.views)}</i></div>` : "");
+    // 半年度走势
+    const tr = d.trend.filter(t => t.median_adj);
+    const peak = Math.max(...tr.map(t => t.median_adj));
+    $("trendBars").innerHTML = d.trend.map(t => {
+      const w = t.median_adj ? Math.max(t.median_adj / peak * 100, 1) : 0;
+      return `<div class="barrow"><span class="lbl">${t.bucket}</span>` +
+        `<span class="bar" style="width:${w}%"></span>` +
+        `<span class="val">${t.median_adj ? fmt(t.median_adj) : "--"}</span>` +
+        `<span class="sub">n=${t.n}${t.young_n ? ` · 含${t.young_n}集热映未折算` : ""}</span></div>`;
+    }).join("");
+    // 互动率
+    const maxDm = Math.max(...d.arcs.filter(a => a.n >= 4).map(a => a.dm_ratio));
+    const maxCoin = Math.max(...d.arcs.filter(a => a.n >= 4).map(a => a.coin_ratio));
+    $("engTable").innerHTML = `<table class="mini"><tr><th>篇章</th><th>集数</th><th class="num">中位累计</th><th class="num">弹幕密度</th><th class="num">投币密度</th></tr>` +
+      d.arcs.map(a => `<tr><td>${a.name}</td><td>${a.n}</td>` +
+        `<td class="num">${fmt(a.median_views)}</td>` +
+        `<td class="num">${(a.dm_ratio * 100).toFixed(2)}%${a.n >= 4 && a.dm_ratio === maxDm ? ' <span class="fire">六年新高🔥</span>' : ""}</td>` +
+        `<td class="num">${(a.coin_ratio * 100).toFixed(2)}%${a.n >= 4 && a.coin_ratio === maxCoin ? ' <span class="fire">六年新高🔥</span>' : ""}</td></tr>`).join("") +
+      `</table>`;
+    // 留存
+    $("retentionTable").innerHTML = `<table class="mini"><tr><th>篇章</th><th>首集</th><th class="num">首集播放</th><th class="num">相对第1集</th></tr>` +
+      d.retention.map(r => `<tr><td>${r.arc}</td><td>第${r.ep}集</td><td class="num">${fmt(r.views)}</td><td class="num">${r.pct.toFixed(1)}%</td></tr>`).join("") +
+      `</table>`;
+    // TOP10 榜单
+    if (d.top) {
+      const sel = $("selTop");
+      if (!sel.options.length) {
+        Object.entries(d.top).forEach(([k, t]) => {
+          const o = document.createElement("option");
+          o.value = k; o.textContent = t.label;
+          sel.appendChild(o);
+        });
+        sel.addEventListener("change", () => renderTop(sel.value));
+      }
+      renderTop(sel.value || "views", d.top);
+    }
+}
+async function loadOverview() {
+  try { renderOverview(await (await fetch("/api/overview")).json()); } catch (e) { /* 忽略 */ }
+}
+
+function renderTop(key, data) {
+  const top = data || window._topData;
+  if (!top || !top[key]) return;
+  window._topData = top;
+  const t = top[key];
+  $("topTable").innerHTML = `<table class="mini"><tr><th>#</th><th>集数</th><th>篇章</th><th class="num">${t.label}</th></tr>` +
+    t.items.map((it, i) =>
+      `<tr><td>${i + 1}</td><td>第${it.ep}集</td><td>${it.arc}</td><td class="num">${fmt(it.value)}</td></tr>`).join("") +
+    `</table>`;
+}
+
+function renderLatest(d) {
+  if (!d) return;
+  const strip = $("latestStrip");
+  if (!d.items.length) { strip.innerHTML = `<span class="muted">等待首轮采集入库…</span>`; return; }
+  strip.innerHTML = d.items.slice(0, 8).map(i =>
+    `<span class="chip mini"><b>第${i.ep}集</b>播放 ${fmt(i.view)} · 弹幕 ${fmt(i.danmaku)}</span>`).join("");
+}
+async function loadLatest() {
+  try { renderLatest(await (await fetch("/api/latest")).json()); } catch (e) { /* 忽略 */ }
+}
+
+/* ───── K 线（沿用原逻辑） ───── */
+let chart = null, mainSeries = null, volSeries = null, ma5Series = null, ma10Series = null;
+let ro = null, current = null;
+
+async function boot() {
+  let d;
+  if (STATIC) {
+    DERIVED = await fetchJSON("/data/derived.json");
+    d = DERIVED && DERIVED.episodes;
+  } else {
+    d = await (await fetch("/api/episodes")).json();
+  }
+  if (!d) { $("srcBadge").textContent = "数据加载失败，请稍后刷新"; return; }
+  const sel = $("selEp");
+  d.episodes.forEach(e => {
+    const o = document.createElement("option");
+    o.value = e.ep_index;
+    o.textContent = `第${e.ep_index}集${e.badge ? "[" + e.badge + "]" : ""} ${e.title || ""}`.trim();
+    sel.appendChild(o);
+  });
+  sel.value = d.default_ep;
+  $("srcBadge").textContent = `${d.title} · ${d.count}集（${d.source === "bilibili" ? "B站实时" : d.source === "cache" ? "云端快照" : "离线兜底"}）`;
+  if (d.error) $("srcBadge").title = d.error;
+  ["selEp", "selMetric", "selMode", "selDays", "selFreq", "chkMA"].forEach(id => $(id).addEventListener("change", load));
+  if (STATIC) {
+    renderOverview(DERIVED.overview); renderLatest(DERIVED.latest); renderReview(DERIVED.review);
+    staticBadge();
+  } else {
+    loadOverview(); loadLatest(); loadReview(); pollStatus();
+  }
+  renderOpinions(); renderDict();
+  await load();          // 数据先取好
+  pendingRender = true;  // K 线在首次切到该 tab 时渲染（隐藏容器尺寸为 0）
+}
+
+async function load() {
+  $("loading").textContent = "加载中…";
+  try {
+    if (STATIC) {
+      const ep = $("selEp").value;
+      const epFile = await fetchJSON(`/data/eps/ep-${ep}.json?t=${Date.now()}`)
+        || { ep: +ep, title: "", rows: [] };
+      current = FanrenCompute.kline(epFile, {
+        metric: $("selMetric").value, mode: $("selMode").value,
+        freq: $("selFreq").value, days: +$("selDays").value,
+      });
+    } else {
+      const q = `ep=${$("selEp").value}&days=${$("selDays").value}&mode=${$("selMode").value}&freq=${$("selFreq").value}&metric=${$("selMetric").value}`;
+      const r = await fetch(`/api/kline?${q}`);
+      if (!r.ok) throw new Error((await r.json()).detail || r.status);
+      current = await r.json();
+    }
+    if (!$("tab-kline").classList.contains("active")) { pendingRender = true; $("loading").textContent = ""; return; }
+    pendingRender = false;
+    render();
+  } catch (e) {
+    $("loading").textContent = "加载失败：" + e.message;
+    return;
+  }
+  $("loading").textContent = "";
+}
+
+function render() {
+  if (chart) { chart.remove(); chart = null; }
+  if (ro) ro.disconnect();
+  const wrap = $("chart");
+  chart = LightweightCharts.createChart(wrap, {
+    width: wrap.clientWidth, height: wrap.clientHeight,
+    layout: { background: { type: "solid", color: "#0d1117" }, textColor: "#8b98a9", fontSize: 12 },
+    grid: { vertLines: { color: "#161c26" }, horzLines: { color: "#161c26" } },
+    rightPriceScale: { borderColor: "#1f2733" },
+    timeScale: { borderColor: "#1f2733", timeVisible: current.mode === "intraday", secondsVisible: false, rightOffset: 4 },
+    crosshair: { mode: 0 },
+    localization: { locale: "zh-CN" },
+  });
+  ro = new ResizeObserver(() => chart && chart.applyOptions({ width: wrap.clientWidth, height: wrap.clientHeight }));
+  ro.observe(wrap);
+
+  const priceFmt = { type: "custom", formatter: fmt, minMove: 1 };
+  const m = current.meta || {};
+  const hasData = current.mode === "intraday" ? (current.intraday || []).length > 0 : current.candles.length > 0;
+  $("empty").style.display = hasData ? "none" : "flex";
+  renderStats();
+  const kb = $("klineBadge");
+  if (!hasData) { kb.textContent = "尚无数据（等待采集）"; kb.className = "tag none"; $("legend").innerHTML = ""; return; }
+  kb.textContent = `真实数据 · 已积累 ${m.points ?? "?"} 点`;
+  kb.className = "tag real";
+
+  if (current.mode === "intraday") {
+    mainSeries = chart.addAreaSeries({
+      lineColor: "#f0b429", topColor: "rgba(240,180,41,0.35)",
+      bottomColor: "rgba(240,180,41,0.02)", lineWidth: 2, priceFormat: priceFmt,
+    });
+    mainSeries.setData(current.intraday || []);
+    $("legend").innerHTML = `累计${current.metric_label}分时 <span class="muted">${m.date || ""}</span>`;
+    chart.timeScale().fitContent();
+    return;
+  }
+
+  mainSeries = chart.addCandlestickSeries({
+    upColor: UP, downColor: DOWN, wickUpColor: UP, wickDownColor: DOWN,
+    borderUpColor: UP, borderDownColor: DOWN, priceFormat: priceFmt,
+  });
+  mainSeries.setData(current.candles);
+  volSeries = chart.addHistogramSeries({ priceScaleId: "vol", priceFormat: priceFmt });
+  volSeries.applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+  const cmap = Object.fromEntries(current.candles.map(c => [c.time, c.close >= c.open]));
+  volSeries.setData(current.volume.map(v => ({
+    ...v, color: cmap[v.time] ? "rgba(239,68,68,0.5)" : "rgba(34,197,94,0.5)",
+  })));
+  const showMA = $("chkMA").checked;
+  ma5Series = chart.addLineSeries({ color: "#f0b429", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  ma10Series = chart.addLineSeries({ color: "#7c8ee0", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  ma5Series.setData(showMA ? current.ma5 : []);
+  ma10Series.setData(showMA ? current.ma10 : []);
+  chart.subscribeCrosshairMove(param => {
+    if (!param.time) { setLegend(current.candles.at(-1) || null); return; }
+    setLegend(current.candles.find(x => x.time === param.time) || null,
+              current.volume.find(v => v.time === param.time) || null);
+  });
+  setLegend(current.candles.at(-1) || null, current.volume.at(-1) || null);
+  chart.timeScale().fitContent();
+}
+
+function setLegend(c, v) {
+  const el = $("legend");
+  if (!c) { el.innerHTML = ""; return; }
+  const chg = c.open ? (c.close - c.open) / Math.abs(c.open) * 100 : 0;
+  const volLabel = current.metric === "views" ? "VOL(弹幕增量)" : "VOL(播放增量)";
+  const when = current.freq === "week" ? c.time + " 当周" : c.time;
+  el.innerHTML =
+    `<b>第${current.ep}集 ${when} · ${current.metric_label}</b>　` +
+    `开 ${fmt(c.open)}　高 ${fmt(c.high)}　低 ${fmt(c.low)}　收 ${fmt(c.close)}　` +
+    `<span style="color:${chg >= 0 ? UP : DOWN}">${pct(chg)}</span>` +
+    (v ? `　${volLabel} ${fmt(v.value)}` : "");
+}
+
+function renderStats() {
+  const m = current.meta || {};
+  if (!m.points) {
+    $("stats").innerHTML = `<div class="chip"><span>真实快照</span><b>0 条</b><i>数据站定时自动采集</i></div>`;
+    return;
+  }
+  const incChip = m.today_inc == null ? "" :
+    `<div class="chip"><span>今日${current.metric_label}增量</span><b>${fmt(m.today_inc)}</b>` +
+    `<i style="color:${(m.today_vs_prev_pct ?? 0) >= 0 ? UP : DOWN}">较昨日 ${pct(m.today_vs_prev_pct)}</i></div>`;
+  const since = m.first_ts ? new Date(m.first_ts * 1000).toLocaleDateString("zh-CN") : "--";
+  $("stats").innerHTML =
+    `<div class="chip"><span>累计${current.metric_label} <span class="tag real">真实</span></span><b>${fmt(m.latest_view)}</b>` +
+    `<i>采样 ${dt(m.latest_ts)}</i></div>` + incChip +
+    `<div class="chip"><span>采集起点</span><b>${since}</b><i>共 ${m.points} 个采样点</i></div>`;
+}
+
+/* ───── 观点 ───── */
+function renderOpinions() {
+  const cards = typeof OPINIONS !== "undefined" ? OPINIONS : [];  // const 声明不在 window 上，用裸标识符取
+  $("opinionCards").innerHTML = cards.map(o =>
+    `<div class="opcard"><h4>${o.title} <span class="tag op">个人观点</span></h4>` +
+    (o.data ? `<div class="anchor">数据锚点：${o.data}</div>` : "") +
+    `<p>${o.text}</p></div>`).join("");
+}
+
+/* ───── 词典 ───── */
+function renderDict() {
+  const cats = typeof DICT !== "undefined" ? DICT : [];  // 同上：裸标识符跨脚本可见
+  $("dictBody").innerHTML = cats.map(cat => {
+    let body = "";
+    if (cat.type === "table") {
+      body = `<table class="mini"><tr><th style="width:120px">黑话</th><th>凡人行情释义</th></tr>` +
+        cat.items.map(([t, d]) => `<tr><td style="white-space:nowrap"><b>${t}</b></td><td>${d}</td></tr>`).join("") +
+        `</table>`;
+    } else if (cat.type === "quotes") {
+      body = cat.items.map(([q, a]) =>
+        `<div class="dictquote"><div class="q">💬 ${q}</div><div class="a">回应：${a}</div></div>`).join("");
+    } else {
+      body = `<ol style="padding-left:20px; line-height:2; color:#c3ccd9">` +
+        cat.items.map(i => `<li>${i}</li>`).join("") + `</ol>`;
+    }
+    return `<div class="panel"><h3>${cat.name}</h3>` +
+      (cat.note ? `<div class="note">${cat.note}</div>` : "") + body + `</div>`;
+  }).join("");
+}
+
+/* ───── 采集状态与刷新 ─────
+   公开按钮只做「刷新数据」：读取已落库/已发布的快照，绝不触发对 B 站的请求。
+   对 B 站的采集一律由定时任务驱动（本地=服务端每小时；线上=GitHub Actions 每2小时），
+   进度与排期在这里如实展示。 */
+let statusTimer = null;
+
+function staticBadge() {
+  const badge = $("autoBadge");
+  const g = DERIVED && DERIVED.generated_ts;
+  const done = g ? new Date(g * 1000).toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" }) : "--";
+  badge.textContent = `云端定时采集 · 更新于 ${done} · 每2小时一轮`;
+  badge.className = "tag";
+  badge.title = "采集由 GitHub Actions 定时任务执行，本页只读结果";
+}
+
+async function pollStatus() {
+  try {
+    const r = await fetch("/api/collect/status");
+    const s = await r.json();
+    const badge = $("autoBadge");
+    if (s.running) {
+      badge.textContent = `自动采集中 ${s.done}/${s.total || "?"}`;
+      badge.className = "tag real";
+    } else if (s.finished_ts) {
+      const done = new Date(s.finished_ts * 1000)
+        .toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" });
+      if (s.interval) {
+        const next = Math.max(0, Math.round((s.finished_ts + s.interval - Date.now() / 1000) / 60));
+        badge.textContent = `上次采集 ${done} · 下轮约 ${next} 分钟后`;
+      } else {
+        badge.textContent = `上次采集 ${done}`;
+      }
+      badge.className = "tag";
+    } else {
+      badge.textContent = "等待首轮自动采集…";
+      badge.className = "tag";
+    }
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(pollStatus, s.running ? 2500 : 60000);
+  } catch (e) {
+    statusTimer = setTimeout(pollStatus, 60000);
+  }
+}
+
+$("btnRefresh").addEventListener("click", async () => {
+  const btn = $("btnRefresh");
+  btn.disabled = true;
+  btn.textContent = "刷新中…";
+  try {
+    if (STATIC) {
+      DERIVED = await fetchJSON(`/data/derived.json?t=${Date.now()}`);
+      if (DERIVED) {
+        renderOverview(DERIVED.overview); renderLatest(DERIVED.latest);
+        renderReview(DERIVED.review); staticBadge();
+        toast("数据已刷新（读取云端快照；对 B 站的采集由 GitHub Actions 定时任务负责）");
+      } else {
+        toast("刷新失败：云端数据暂不可达", true);
+      }
+      await load();
+    } else {
+      await Promise.all([loadOverview(), loadLatest(), load()]);
+      toast("数据已刷新（读取本地快照；对 B 站的采集由服务端定时任务负责）");
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "刷新数据";
+  }
+});
+
+function toast(msg, bad) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "show" + (bad ? " bad" : "");
+  setTimeout(() => t.className = "", 4000);
+}
+
+boot();
+</script>
+</body>
+</html>

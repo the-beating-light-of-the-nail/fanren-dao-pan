@@ -1,0 +1,15 @@
+// 凡人道盘 · Cloudflare Workers 部署配置
+// 部署：先 python collect.py --export-only && python build_dist.py，再 npx wrangler deploy
+{
+  "name": "fanren-dao-pan",
+  "compatibility_date": "2026-08-30",
+  "main": "worker.js",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/data/*"]
+  },
+  "routes": [
+    { "pattern": "fanren.cdqyfdbymn.me", "custom_domain": true }
+  ]
+}
