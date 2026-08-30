@@ -481,7 +481,7 @@ document.querySelectorAll(".tabs button").forEach(btn => {
     document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b === btn));
     document.querySelectorAll(".tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + btn.dataset.tab));
     if (btn.dataset.tab === "kline" && pendingRender && current) { pendingRender = false; render(); }
-    if (btn.dataset.tab === "dn" && !DN_DATA) loadDn();
+    if (btn.dataset.tab === "dn") { if (!DN_DATA) loadDn(); else if (!dnChart) renderDn(); }
   });
 });
 
@@ -769,7 +769,7 @@ async function dnJumpGo() {
   if (!raw) { toast("输入集数，如 176 182 186 或 176-180", true); return; }
   const eps = new Set();
   for (const tok of raw.split(/[,，、\s]+/).filter(Boolean)) {
-    const m = tok.match(/^(\d{1,3})(?:-(\d{1,3}))?$/);
+    const m = tok.match(/^(\d{1,3})(?:[-－—~～](\d{1,3}))?$/);  // 连字符兼容中文输入法全角写法
     if (!m) { toast(`看不懂「${tok}」——写法：176 182 186 或 176-180`, true); return; }
     let a = +m[1], b = m[2] ? +m[2] : a;
     if (a > b) [a, b] = [b, a];
@@ -895,8 +895,8 @@ let dnRenderTries = 0;
 function renderDn() {
   if (!DN_DATA) return;
   const wrap = $("dnChart");
-  if (!wrap.clientWidth) {  // tab 未可见时尺寸为 0，等可见再画（限次防自旋）
-    if (dnRenderTries++ < 120) requestAnimationFrame(renderDn);
+  if (!wrap.clientWidth) {  // 容器不可见时尺寸为 0，等可见再画；切回本页签时也会兜底重画
+    if (dnRenderTries++ < 300) setTimeout(renderDn, 200);
     return;
   }
   dnRenderTries = 0;
