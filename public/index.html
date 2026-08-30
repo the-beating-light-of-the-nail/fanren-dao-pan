@@ -376,7 +376,7 @@
         <span style="color:var(--gold)">MA5</span> / <span style="color:var(--jade)">MA10</span>
       </label>
       <span id="loading" class="muted"></span>
-      <span class="muted" title="柱高=该采集日（按周=该自然周）的总增量，由相邻快照的累计值相减而得，跨缺口不折算；2026-08-30 起为小时级自采，更早为开源仓库日更快照">柱=1个采集日的总增量 · 新数据小时级采样 · 历史为日更粒度</span>
+      <span class="muted" title="柱高=该采集日（按周=该自然周）的总增量，由相邻快照的累计值相减而得，跨缺口不折算；2026-08-30~31 为小时级自采，此后每日收盘后（约 23:13）采集一次；更早为开源仓库日更快照">柱=1个采集日的总增量 · 现每日收盘后采集一次 · 历史为日更粒度</span>
     </div>
     <div class="stats" id="stats"></div>
     <div id="chartWrap">
@@ -385,7 +385,7 @@
       <div id="empty">
         <div class="big">☯ 此集尚无真实快照</div>
         <div>本站<b style="color:var(--gold)">不伪造历史数据</b>（B 站不提供历史播放 API）。<br>
-          数据站定时自行采集（小时级）；同一集攒够 2 条以上快照，K 线便会开始生长。</div>
+          数据站定时自行采集（每日收盘后一次，2026-08-30~31 曾为小时级）；同一集攒够 2 条以上快照，K 线便会开始生长。</div>
       </div>
     </div>
   </section>
@@ -419,7 +419,7 @@
       <div class="note">口径：「两日存量」=开播满 48 小时累计播放；D+N 列=开播第 N 天的 24 小时日增（万）。
         只有相邻日快照构成完整 24 小时窗口才计入日增——跨缺口多日的累计差<b>绝不折算成某一天的增量</b>。标 * 者为回填口径（其首日绝对值偏大，看形状勿抠数）。<br>
         为何多数曲线自 D+2/D+3 起：并非数据迟到——B 站不提供历史播放接口，这些集上线头两天的分日数据
-        当时未被任何数据源记录，此后也不会出现；本站小时级自采始于 2026-08-30，<b>自 ep189 起新集开播当天即有完整行情</b>。
+        当时未被任何数据源记录，此后也不会出现；本站自采始于 2026-08-30（初期小时级，2026-08-31 起每日收盘后一次），<b>自 ep189 起新集开播当晚即有当日收盘快照</b>。
         周六 11:00 为 B 站视频上线时刻（会员争先日）。</div>
       <div id="dnTable"></div>
     </div>
@@ -440,7 +440,7 @@
 
 <footer>
   ◈ 声明：凡人道盘为爱好者第三方统计工具，数据皆取自 B 站公开页面，本站无商业收益；与 B 站、凡人修仙传版权方无任何关联，仅供道友交流参详。外部链接为友情链接，与本站无涉。<br>
-  数据口径：2026-08-30 起为自采小时级快照，更早历史来自开源项目 yansheng836/bilibili-Fanrenpc（MIT，日更粒度） · 「开盘 / 涨停 / 持有」皆为玩梗，不构成任何真实投资建议 · 「收评专区」为站长个人立场 · 收到权利方通知将即刻停止服务<br>
+  数据口径：2026-08-30 起为本站自采（初期小时级，2026-08-31 起每日收盘后一次），更早历史来自开源项目 yansheng836/bilibili-Fanrenpc（MIT，日更粒度） · 「开盘 / 涨停 / 持有」皆为玩梗，不构成任何真实投资建议 · 「收评专区」为站长个人立场 · 收到权利方通知将即刻停止服务<br>
   <span style="color:var(--gold-dim)">大道五十，天衍四九，人遁其一。</span>
   <div class="kwcloud">
     <span>凡人修仙传播放量</span><span>每集播放量</span><span>单集数据</span><span>分时数据</span>
@@ -981,7 +981,7 @@ function renderDict() {
 
 /* ───── 采集状态与刷新 ─────
    公开按钮只做「刷新数据」：读取已落库/已发布的快照，绝不触发对 B 站的请求。
-   对 B 站的采集一律由定时任务驱动（本地=服务端每小时；线上=GitHub Actions 每2小时），
+   对 B 站的采集一律由定时任务驱动（本地=服务端定时；线上=GitHub Actions 每日收盘后一次），
    进度与排期在这里如实展示。 */
 let statusTimer = null;
 
@@ -989,7 +989,7 @@ function staticBadge() {
   const badge = $("autoBadge");
   const g = DERIVED && DERIVED.generated_ts;
   const done = g ? new Date(g * 1000).toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" }) : "--";
-  badge.textContent = `云端周天运转 · 更新于 ${done} · 每2小时一轮`;
+  badge.textContent = `云端周天运转 · 更新于 ${done} · 每日收盘后一轮`;
   badge.className = "tag";
   badge.title = "采集由 GitHub Actions 定时任务执行，本页只读结果";
 }
