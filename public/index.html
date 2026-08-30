@@ -409,7 +409,7 @@
       </label>
       <button id="dnClear" title="清空当前对比组">清空</button>
       <button id="dnRecent" title="恢复默认：最近 6 集">最近6集</button>
-      <span class="muted" title="每条曲线横轴=各自开播第N天；虚线=回填口径（开源日更数据）">至多 8 只 · 按钮可微调 · 虚线=回填口径</span>
+      <span class="muted" title="每条曲线横轴=各自开播第N天；虚线=回填口径（开源日更数据）">至多 24 只 · 按钮可微调 · 虚线=回填口径</span>
     </div>
     <div class="epchips" id="dnChips"></div>
     <div id="dnChartWrap">
@@ -751,7 +751,10 @@ function renderStats() {
 
 /* ───── 数据对比（D+N 多集叠加：横轴=各自开播第 N 天） ───── */
 const DN_COLORS = ["#d4a84b", "#26a69a", "#f6465d", "#2ebd85", "#b48ead", "#e8863a", "#5b8bd0", "#d96ba0"];
-const DN_MAX = 8;
+const DN_MAX = 24;
+/* 前 8 色为手选品牌色，之后按黄金角在色环上自动取色，保证整篇 24 条仍可分辨 */
+const dnColor = i => i < DN_COLORS.length ? DN_COLORS[i]
+  : `hsl(${Math.round(i * 137.508) % 360}, 62%, 62%)`;
 const DN_BASE = 1704067200;  // 2024-01-01 UTC · 伪时间轴：第 N 天 = BASE + N*86400
 let DN_DATA = null, DN_SEL = [], dnChart = null, dnRo = null, dnZoomFull = false;
 const dnLoading = new Set();
@@ -920,7 +923,7 @@ function renderDn() {
   DN_SEL.forEach((ep, i) => {
     const e = DN_DATA.eps[ep];
     if (!e) return;
-    const color = DN_COLORS[i % DN_COLORS.length];
+    const color = dnColor(i);
     const imp = e.series.some(r => r[3]);  // 含回填口径段 → 虚线
     const s = dnChart.addLineSeries({
       color, lineWidth: 2, priceLineVisible: false, lineStyle: imp ? 2 : 0,
