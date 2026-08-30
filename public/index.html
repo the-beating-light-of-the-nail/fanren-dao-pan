@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" content="#0c0810">
 <title>凡人道盘 - 凡人修仙传非官方热度数据站 | B站播放K线分时行情</title>
 <meta name="description" content="凡人道盘，凡人修仙传非官方数据观测站。采集B站公开播放、投币、收藏数据，提供单集分时K线、热度走势、各集对比，道友的凡人行情终端。">
 <meta name="keywords" content="凡人修仙传,凡人修仙传播放量,凡人修仙传单集数据,凡人修仙传K线,凡人修仙传每集播放量,凡人修仙传分时数据,凡人道盘,慕兰之战,韩立,B站国漫热度">
@@ -16,97 +16,184 @@
 <script src="opinions.js"></script>
 <script src="dictionary.js"></script>
 <style>
+  /* ═══════════ 凡人道盘 · 修仙画风色彩体系 ═══════════ */
+  :root {
+    --bg:        #0c0810;  /* 玄紫黑 · 洞府底色 */
+    --bg-panel:  #140d1c;  /* 面板底 · 卷轴面 */
+    --bg-deep:   #1a0f24;  /* 深  紫 · 选中态 / 网格线 */
+    --line:      #3d2646;  /* 暗  紫 · 阵法边框 */
+    --line-soft: #2a1b33;  /* 柔  紫 · 次级分隔 */
+    --gold:      #d4a84b;  /* 古  金 · 主强调（灵石 / 金丹） */
+    --gold-dim:  #96793a;  /* 暗  金 · 弱化文字 */
+    --text:      #d8d0c4;  /* 米  白 · 正文 */
+    --text-sub:  #94849f;  /* 淡紫灰 · 次要文字 */
+    --text-mute: #6b5a7a;  /* 更  淡 · 注释 */
+    --up:        #c93a37;  /* 朱砂红 · 涨 */
+    --down:      #3a8b5c;  /* 翠玉绿 · 跌 */
+    --jade:      #5dbaaf;  /* 青  玉 · MA10 */
+    /* 古风字体栈：优先系统中文字体，零网络开销，移动端即时生效 */
+    --font-gu: "STZhongsong", "STKaiti", "KaiTi", "楷体", "STSong", "SimSun", "宋体",
+               "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", serif;
+    --font-num: Consolas, "Courier New", monospace;
+  }
   * { box-sizing: border-box; margin: 0; }
   html, body { height: 100%; }
   body {
     display: flex; flex-direction: column;
-    background: #0d1117; color: #d7dee8;
-    font: 14px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(ellipse 90% 55% at 50% -8%, rgba(212,168,75,.075), transparent 72%);
+    background-attachment: fixed;
+    color: var(--text);
+    font: 14px/1.75 var(--font-gu);
   }
   header {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    padding: 10px 16px; background: #11161f; border-bottom: 1px solid #1f2733;
+    padding: 10px 16px; background: var(--bg-panel);
+    border-bottom: 3px double var(--line);
   }
-  .brand { font-size: 17px; font-weight: 600; }
+  .brand { font-size: 18px; font-weight: 600; color: var(--gold); letter-spacing: .08em; }
   .brandWrap { display: flex; flex-direction: column; gap: 2px; }
-  .subtitle { font-size: 12px; color: #8b98a9; }
-  .tag { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #1b2330; color: #8b98a9; }
-  .tag.fan { color: #e879a9; border: 1px solid #e879a955; }
-  .tag.real { color: #4ade80; }
-  .tag.none { color: #e6a23c; }
-  .tag.op { color: #f0b429; border: 1px solid #f0b42955; }
+  .subtitle { font-size: 12px; color: var(--text-sub); letter-spacing: .03em; }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: 3px; background: var(--bg-deep); color: var(--text-sub); }
+  .tag.fan { color: var(--gold); border: 1px solid rgba(212,168,75,.4); }
+  .tag.real { color: var(--down); }
+  .tag.none { color: var(--gold); }
+  .tag.op { color: var(--gold); border: 1px solid rgba(212,168,75,.4); }
   header .spacer { flex: 1; }
   button {
-    background: #e14d57; color: #fff; border: 0; border-radius: 6px;
-    padding: 7px 14px; cursor: pointer; font-size: 13px;
+    background: transparent; color: var(--gold); border: 1px solid var(--gold);
+    border-radius: 3px; padding: 7px 14px; cursor: pointer; font-size: 13px;
+    font-family: var(--font-gu); letter-spacing: .08em;
+    transition: background .25s, box-shadow .25s;
   }
-  button:disabled { opacity: .55; cursor: wait; }
-  .tabs { display: flex; gap: 4px; padding: 8px 16px 0; background: #0f141d; border-bottom: 1px solid #1f2733; }
+  button:hover:not(:disabled) { background: rgba(212,168,75,.12); box-shadow: 0 0 12px rgba(212,168,75,.38); }
+  button:disabled { opacity: .5; cursor: wait; }
+  .tabs { display: flex; gap: 4px; padding: 8px 16px 0; background: var(--bg-panel); border-bottom: 1px solid var(--line); }
   .tabs button {
-    background: transparent; color: #8b98a9; padding: 8px 18px; border-radius: 8px 8px 0 0;
-    border: 1px solid transparent; border-bottom: 0; font-size: 14px;
+    background: transparent; color: var(--text-sub); padding: 8px 18px; border-radius: 3px 3px 0 0;
+    border: 1px solid transparent; border-bottom: 0; font-size: 14px; letter-spacing: .05em;
   }
-  .tabs button.active { background: #0d1117; color: #e879a9; border-color: #1f2733; }
+  .tabs button:hover { color: var(--gold); }
+  .tabs button.active {
+    background: var(--bg); color: var(--gold); border-color: var(--line);
+    box-shadow: inset 0 2px 0 var(--gold);
+  }
   main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .tab { display: none; flex: 1; flex-direction: column; min-height: 0; overflow-y: auto; padding-bottom: 12px; }
   .tab.active { display: flex; }
   .stats { display: flex; gap: 10px; padding: 12px 16px 0; flex-wrap: wrap; }
   .chip {
-    display: flex; flex-direction: column; gap: 2px; background: #11161f;
-    border: 1px solid #1f2733; border-radius: 8px; padding: 8px 14px; min-width: 132px;
+    display: flex; flex-direction: column; gap: 2px; background: var(--bg-panel);
+    border: 1px solid var(--line); border-radius: 3px; padding: 8px 14px; min-width: 132px;
   }
-  .chip span { color: #8b98a9; font-size: 12px; }
-  .chip b { font-size: 17px; }
-  .chip i { font-style: normal; font-size: 12px; color: #8b98a9; }
+  .chip span { color: var(--text-sub); font-size: 12px; }
+  .chip b { font-size: 17px; color: var(--gold); font-family: var(--font-num); }
+  .chip i { font-style: normal; font-size: 12px; color: var(--text-sub); }
   .chip.mini { flex-direction: row; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px; font-size: 12px; }
+  /* 迷你 chip 里是「第N集」中文，回落古风字体而非等宽 */
+  .chip.mini b { font-size: 13px; font-family: var(--font-gu); letter-spacing: .03em; }
   .strip { display: flex; gap: 8px; padding: 8px 16px 0; flex-wrap: wrap; }
-  .panel { margin: 12px 16px 0; background: #11161f; border: 1px solid #1f2733; border-radius: 10px; padding: 14px 16px; }
-  .panel h3 { font-size: 14px; color: #d7dee8; margin-bottom: 4px; }
-  .panel .note { font-size: 12px; color: #5c6875; margin-bottom: 10px; }
+  .panel {
+    position: relative; margin: 12px 16px 0; background: var(--bg-panel);
+    border: 1px dashed var(--line); border-radius: 3px; padding: 14px 16px;
+  }
+  /* 面板右上角的阵纹印记 */
+  .panel::after {
+    content: "◈"; position: absolute; top: 8px; right: 11px;
+    color: var(--gold); opacity: .22; font-size: 12px; pointer-events: none;
+  }
+  .panel h3 { font-size: 14px; color: var(--gold); margin-bottom: 4px; letter-spacing: .05em; font-weight: 600; }
+  .panel .note { font-size: 12px; color: var(--text-mute); margin-bottom: 10px; line-height: 1.85; }
   .barrow { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
-  .barrow .lbl { width: 58px; color: #8b98a9; font-size: 12px; font-family: Consolas, monospace; flex: none; }
-  .barrow .bar { height: 16px; border-radius: 3px; background: linear-gradient(90deg, #b84d6f, #e879a9); min-width: 2px; }
-  .barrow .val { color: #d7dee8; font-size: 12px; font-family: Consolas, monospace; white-space: nowrap; }
-  .barrow .sub { color: #5c6875; font-size: 11px; white-space: nowrap; }
-  .fire { color: #f0b429; font-size: 11px; border: 1px solid #f0b42955; border-radius: 8px; padding: 0 6px; }
+  .barrow .lbl { width: 58px; color: var(--text-sub); font-size: 12px; font-family: var(--font-num); flex: none; }
+  .barrow .bar {
+    height: 16px; border-radius: 2px; min-width: 2px;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  }
+  .barrow .val { color: var(--gold); font-size: 12px; font-family: var(--font-num); white-space: nowrap; }
+  .barrow .sub { color: var(--text-mute); font-size: 11px; white-space: nowrap; }
+  .fire { color: var(--gold); font-size: 11px; border: 1px solid rgba(212,168,75,.4); border-radius: 3px; padding: 0 6px; }
   table.mini { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  table.mini th, table.mini td { padding: 5px 8px; text-align: left; border-bottom: 1px solid #1b2330; }
-  table.mini th { color: #8b98a9; font-weight: normal; }
-  table.mini td.num { font-family: Consolas, monospace; text-align: right; }
+  table.mini th, table.mini td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line-soft); }
+  table.mini th { color: var(--gold-dim); font-weight: normal; letter-spacing: .06em; }
+  table.mini td.num { font-family: var(--font-num); text-align: right; }
   .opbanner {
-    margin: 12px 16px 0; padding: 10px 14px; border: 1px dashed #f0b42966;
-    border-radius: 10px; color: #f0b429; font-size: 13px; background: #16130922;
+    margin: 12px 16px 0; padding: 10px 14px; border: 1px dashed rgba(212,168,75,.42);
+    border-radius: 3px; color: var(--gold); font-size: 13px; background: rgba(212,168,75,.05);
   }
-  .opcard { margin: 12px 16px 0; background: #11161f; border: 1px solid #1f2733; border-radius: 10px; padding: 14px 16px; }
-  .opcard h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .opcard {
+    margin: 12px 16px 0; background: var(--bg-panel);
+    border: 1px dashed var(--line); border-radius: 3px; padding: 14px 16px;
+  }
+  .opcard h4 {
+    font-size: 15px; margin-bottom: 8px; display: flex; align-items: center;
+    gap: 8px; flex-wrap: wrap; color: var(--gold); letter-spacing: .04em;
+  }
   .opcard .anchor {
-    font-size: 12px; color: #7ee2a8; background: #16351f66; border: 1px solid #2c6e4466;
-    border-radius: 6px; padding: 4px 10px; margin-bottom: 8px;
+    font-size: 12px; color: var(--down); background: rgba(58,139,92,.12);
+    border: 1px solid rgba(58,139,92,.35); border-radius: 3px; padding: 4px 10px; margin-bottom: 8px;
   }
-  .opcard p { color: #c3ccd9; }
+  .opcard p { color: var(--text); }
   /* K 线 tab */
   .controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px 0; }
-  .controls label { display: flex; align-items: center; gap: 6px; color: #8b98a9; }
-  select { background: #161c26; color: #d7dee8; border: 1px solid #232c3a; border-radius: 6px; padding: 4px 8px; max-width: 260px; }
-  #chartWrap { position: relative; flex: 1; min-height: 380px; margin: 10px 16px 0; border: 1px solid #1f2733; border-radius: 10px; overflow: hidden; }
+  .controls label { display: flex; align-items: center; gap: 6px; color: var(--text-sub); }
+  select {
+    background: var(--bg-deep); color: var(--text); border: 1px solid var(--line-soft);
+    border-radius: 3px; padding: 4px 8px; max-width: 260px; font-family: var(--font-gu);
+  }
+  #chartWrap {
+    position: relative; flex: 1; min-height: 380px; margin: 10px 16px 0;
+    border: 1px dashed var(--line); border-radius: 3px; overflow: hidden;
+  }
   #chart { position: absolute; inset: 0; }
-  #legend { position: absolute; top: 8px; left: 10px; z-index: 5; font: 12px/1.7 Consolas, "Courier New", monospace; color: #aab4c3; pointer-events: none; text-shadow: 0 1px 2px #000c; }
-  #empty { position: absolute; inset: 0; z-index: 4; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; color: #8b98a9; padding: 24px; }
-  #empty .big { font-size: 17px; color: #d7dee8; }
-  footer { padding: 10px 16px; color: #5c6875; font-size: 12px; line-height: 1.8; }
+  #legend {
+    position: absolute; top: 8px; left: 10px; z-index: 5;
+    font: 12px/1.7 var(--font-num); color: var(--text-sub);
+    pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,.85);
+  }
+  #legend b { color: var(--gold); }
+  #empty {
+    position: absolute; inset: 0; z-index: 4; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px; text-align: center;
+    color: var(--text-sub); padding: 24px;
+  }
+  #empty .big { font-size: 17px; color: var(--gold); }
+  footer {
+    padding: 12px 16px; color: var(--text-mute); font-size: 12px; line-height: 1.9;
+    border-top: 1px solid var(--line-soft); margin-top: 14px;
+  }
   .kwcloud { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .kwcloud span { font-size: 11px; color: #6b7686; background: #11161f; border: 1px solid #1f2733; border-radius: 8px; padding: 1px 8px; }
-  .muted { color: #5c6875; }
-  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #16351f; color: #7ee2a8; border: 1px solid #2c6e44; padding: 8px 18px; border-radius: 8px; opacity: 0; transition: .25s; pointer-events: none; max-width: 80vw; }
+  .kwcloud span {
+    font-size: 11px; color: var(--text-mute); background: var(--bg-panel);
+    border: 1px solid var(--line-soft); border-radius: 3px; padding: 1px 8px;
+  }
+  .muted { color: var(--text-mute); }
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--bg-deep); color: var(--down); border: 1px solid var(--down);
+    padding: 8px 18px; border-radius: 3px; opacity: 0; transition: .25s;
+    pointer-events: none; max-width: 80vw; box-shadow: 0 0 16px rgba(0,0,0,.6);
+  }
   #toast.show { opacity: 1; transform: translateX(-50%); }
-  #toast.bad { background: #3a1c20; color: #ff9aa4; border-color: #7a3038; }
+  #toast.bad { background: #2a1214; color: #e0928f; border-color: var(--up); }
 
   /* ───── 表格容器：窄屏横向滑动 ───── */
   #engTable, #retentionTable, #topTable, #limitupTable { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.mini { min-width: 480px; }
-  .dictquote { border-left: 3px solid #2c6e44; background: #11161f; border-radius: 6px; padding: 10px 14px; margin: 8px 0; }
-  .dictquote .q { color: #ff9aa4; margin-bottom: 6px; }
-  .dictquote .a { color: #7ee2a8; }
+  .dictquote {
+    border-left: 3px solid var(--down); background: var(--bg-panel);
+    border-radius: 3px; padding: 10px 14px; margin: 8px 0;
+  }
+  .dictquote .q { color: var(--gold); margin-bottom: 6px; }
+  .dictquote .a { color: var(--down); }
+  /* 加载态：灵力运转 */
+  @keyframes spin-taiji { to { transform: rotate(360deg); } }
+  .taiji {
+    display: inline-block; width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px;
+    border: 1.5px solid var(--gold); border-right-color: transparent; border-radius: 50%;
+    animation: spin-taiji .9s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .taiji { animation: none; } }
 
   /* ───── 移动端适配（传播主场景：群聊/贴吧点开的就是手机） ───── */
   @media (max-width: 768px) {
@@ -143,56 +230,56 @@
 <body>
 <header>
   <div class="brandWrap">
-    <h1 class="brand">📈 凡人道盘</h1>
+    <h1 class="brand">☯ 凡人道盘</h1>
     <div class="subtitle">凡人修仙传｜非官方热度K线数据站｜周六开盘，道友盯盘</div>
   </div>
-  <span class="tag" id="srcBadge">剧集表加载中…</span>
+  <span class="tag" id="srcBadge">剧集表推演中…</span>
   <div class="spacer"></div>
-  <span class="tag" id="autoBadge">自动采集</span>
-  <button id="btnRefresh">刷新数据</button>
+  <span class="tag" id="autoBadge">周天运转</span>
+  <button id="btnRefresh">灵气刷新</button>
 </header>
 
 <nav class="tabs">
-  <button data-tab="overview" class="active">大盘</button>
+  <button data-tab="overview" class="active">大道盘</button>
   <button data-tab="kline">行情K线</button>
-  <button data-tab="opinions">📈收评专区</button>
-  <button data-tab="dict">词典</button>
+  <button data-tab="opinions">◈ 收评专区</button>
+  <button data-tab="dict">道典</button>
 </nav>
 
 <main>
   <!-- ════════ Tab 1: 数据总览（数据层，涨跌如实展示） ════════ -->
   <section id="tab-overview" class="tab active">
-    <div class="panel" style="border-color:#2c6e4466">
-      <h3>📈 今日收评 <span class="tag real">自动生成 · 数字真实 · 语气玩梗</span></h3>
-      <div class="note">道友，今天盯盘了吗？收评由服务端按真实快照自动生成，每个数字都可点进K线验证。</div>
-      <p id="reviewText" style="color:#c3ccd9; line-height:1.9">生成中…</p>
+    <div class="panel" style="border-color:rgba(212,168,75,.45)">
+      <h3>◈ 今日收评 <span class="tag real">周天自衍 · 数字真实 · 语气玩梗</span></h3>
+      <div class="note">道友，今日可曾盯盘？收评由服务端依真实快照自衍而成，每个数字皆可点入K线印证。</div>
+      <p id="reviewText" style="color:var(--text); line-height:1.95">推演中…</p>
     </div>
     <div class="stats" id="bigStats"></div>
     <div class="strip" id="latestStrip"></div>
     <div class="panel">
-      <h3>从开始到现在 · 每集热度走势</h3>
-      <div class="note">口径：每集累计播放按 V(t)=V∞·t/(t+60天) 折算到满年龄，消除老集长尾/新集未长大的偏差；原始中位数一并列出。数据为真实快照。</div>
+      <h3>自开天至今 · 每集道行走势</h3>
+      <div class="note">口径：每集累计播放按 V(t)=V∞·t/(t+60天) 折算至满年龄，消除老集长尾 / 新集未长成之偏差；原始中位数一并列出。数据皆为真实快照。</div>
       <div id="trendBars"></div>
     </div>
     <div class="panel">
-      <h3>篇章互动率 · 弹幕/投币密度</h3>
-      <div class="note">弹幕密度 = 弹幕总数 ÷ 播放总数（篇章口径）。时间越久该值只会更高，因此新篇章反超老篇章是强信号。</div>
+      <h3>篇章互动率 · 弹幕 / 投币灵气密度</h3>
+      <div class="note">弹幕密度 = 弹幕总数 ÷ 播放总数（篇章口径）。年岁越久此值只会越高，故新篇章反超老篇章，是为强信号。</div>
       <div id="engTable"></div>
     </div>
     <div class="panel">
-      <h3>留存漏斗 · 各篇首集 / 第1集</h3>
-      <div class="note">核心观众规模六年几乎不变。</div>
+      <h3>道心留存 · 各篇首集 / 第1集</h3>
+      <div class="note">核心道友之数，六载几乎未变。</div>
       <div id="retentionTable"></div>
     </div>
     <div class="panel">
-      <h3>🔥 历史涨停板 · 单日最大增量盘点</h3>
-      <div class="note">每集开播史上最猛的一天（真实快照计算）——名场面集在此现形。</div>
+      <h3>◈ 历史涨停板 · 单日最大增量盘点</h3>
+      <div class="note">每集开播史上最猛的一日（真实快照推算）——名场面集，于此现形。</div>
       <div id="limitupTable"></div>
     </div>
     <div class="panel">
       <h3>TOP10 榜单</h3>
       <div class="note">取每集最近一条真实快照排序。</div>
-      <label style="margin-bottom:8px; color:#8b98a9">指标 <select id="selTop"></select></label>
+      <label style="margin-bottom:8px; color:var(--text-sub)">指标 <select id="selTop"></select></label>
       <div id="topTable"></div>
     </div>
   </section>
@@ -202,7 +289,7 @@
     <div class="controls">
       <span class="tag none" id="klineBadge">加载中…</span>
       <label title="每一集都是一只个股">个股（集数） <select id="selEp"></select></label>
-      <label>指标
+      <label>道法（指标）
         <select id="selMetric" title="K线画哪个指标的增量">
           <option value="views" selected>播放量</option>
           <option value="danmaku">弹幕</option>
@@ -213,7 +300,7 @@
           <option value="reply">评论</option>
         </select>
       </label>
-      <label>模式
+      <label>法门
         <select id="selMode">
           <option value="inc" selected>日增播放 K线</option>
           <option value="total">累计播放 K线</option>
@@ -224,14 +311,14 @@
         <option value="day" selected>日K</option>
         <option value="week">周K</option>
       </select></label>
-      <label>周期
+      <label>周天
         <select id="selDays">
           <option>7</option><option>30</option>
           <option selected>90</option><option>180</option><option>365</option>
-        </select> 天
+        </select> 日
       </label>
       <label><input type="checkbox" id="chkMA" checked>
-        <span style="color:#f0b429">MA5</span> / <span style="color:#7c8ee0">MA10</span>
+        <span style="color:var(--gold)">MA5</span> / <span style="color:var(--jade)">MA10</span>
       </label>
       <span id="loading" class="muted"></span>
       <span class="muted" title="2026-08-30 起为小时级自采；更早为开源仓库日更快照（无日内采样，开盘价衔接上一周期收盘）">蜡烛=1个采集日 · 新数据小时级采样 · 历史为日更粒度</span>
@@ -241,29 +328,30 @@
       <div id="legend"></div>
       <div id="chart"></div>
       <div id="empty">
-        <div class="big">⏳ 这集还没有真实快照</div>
-        <div>本站<b>不伪造历史数据</b>（B 站不提供历史播放 API）。<br>
-          数据站定时自动采集（小时级）；同一集攒够 2 条以上快照，K 线就会开始生长。</div>
+        <div class="big">☯ 此集尚无真实快照</div>
+        <div>本站<b style="color:var(--gold)">不伪造历史数据</b>（B 站不提供历史播放 API）。<br>
+          数据站定时自行采集（小时级）；同一集攒够 2 条以上快照，K 线便会开始生长。</div>
       </div>
     </div>
   </section>
 
   <!-- ════════ Tab 3: 站长观点（观点层，全部标注个人观点） ════════ -->
   <section id="tab-opinions" class="tab">
-    <div class="opbanner">⚠️ 以下是站长个人观点，带立场、可反驳。本站数据层与观点层相互独立：数据页涨跌如实展示，观点页只代表她自己。</div>
+    <div class="opbanner">◈ 以下皆为站长一家之言，带立场、可辩驳。本站数据层与观点层互不相涉：数据页涨跌如实呈现，观点页只代表她自己。</div>
     <div id="opinionCards"></div>
   </section>
 
   <!-- ════════ Tab 4: 词典（传播弹药库） ════════ -->
   <section id="tab-dict" class="tab">
-    <div class="opbanner" style="border-color:#4ade8066; color:#4ade80">📖 凡人股民词典 · 梗是语气，数字是数据——玩梗请配合站内真实行情使用</div>
+    <div class="opbanner" style="border-color:rgba(58,139,92,.5); color:var(--down)">◈ 凡人股民道典 · 梗是语气，数字是数据——玩梗请配合站内真实行情使用</div>
     <div id="dictBody"></div>
   </section>
 </main>
 
 <footer>
-  🔖 声明：凡人道盘为爱好者第三方统计工具，数据均来源于 B 站公开页面，本站无商业收益；与 B 站、凡人修仙传版权方无任何关联，仅供道友交流参考。外部链接为友情链接，与本站无关。<br>
-  数据口径：2026-08-30 起为自采小时级快照，更早历史来自开源项目 yansheng836/bilibili-Fanrenpc（MIT，日更粒度） · 「开盘/涨停/持有」均为玩梗，不构成任何真实投资建议 · 「收评专区」为站长个人立场 · 收到权利方通知将立即停止服务
+  ◈ 声明：凡人道盘为爱好者第三方统计工具，数据皆取自 B 站公开页面，本站无商业收益；与 B 站、凡人修仙传版权方无任何关联，仅供道友交流参详。外部链接为友情链接，与本站无涉。<br>
+  数据口径：2026-08-30 起为自采小时级快照，更早历史来自开源项目 yansheng836/bilibili-Fanrenpc（MIT，日更粒度） · 「开盘 / 涨停 / 持有」皆为玩梗，不构成任何真实投资建议 · 「收评专区」为站长个人立场 · 收到权利方通知将即刻停止服务<br>
+  <span style="color:var(--gold-dim)">大道五十，天衍四九，人遁其一。</span>
   <div class="kwcloud">
     <span>凡人修仙传播放量</span><span>每集播放量</span><span>单集数据</span><span>分时数据</span>
     <span>凡人修仙传K线</span><span>热度走势</span><span>各集对比</span><span>总播放量</span>
@@ -276,7 +364,10 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const UP = "#ef4444", DOWN = "#22c55e";
+/* ── 修仙画风调色板（与 CSS :root 变量保持一致） ── */
+const UP = "#c93a37", DOWN = "#3a8b5c";      /* 朱砂红 · 翠玉绿 */
+const GOLD = "#d4a84b", JADE = "#5dbaaf";    /* 古金 · 青玉 */
+const C_BG = "#0c0810", C_GRID = "#1a0f24", C_LINE = "#3d2646";
 const CFG = window.FANREN || { mode: "server" };
 const STATIC = CFG.mode === "static";
 let DERIVED = null; // 静态模式：/data/derived.json（总览/收评/榜单/剧集表）
@@ -306,15 +397,15 @@ function renderReview(d) {
   if (!d) return;
   if (d.review) {
     $("reviewText").innerHTML =
-      `<b style="color:#4ade80">【${d.review.ep != null ? "第" + d.review.ep + "集" : "大盘"} · ${d.review.title || ""}】</b> ${d.review.text}`;
+      `<b style="color:${GOLD}">【${d.review.ep != null ? "第" + d.review.ep + "集" : "大道盘"} · ${d.review.title || ""}】</b> ${d.review.text}`;
   } else {
-    $("reviewText").textContent = "暂无数据，等待首轮采集。";
+    $("reviewText").textContent = "暂无数据，静候首轮周天采集。";
   }
   if (d.limitup && d.limitup.length) {
     $("limitupTable").innerHTML = `<table class="mini"><tr><th>#</th><th>集数</th><th>标题</th><th>涨停日</th><th class="num">单日增量</th></tr>` +
       d.limitup.map((x, i) =>
         `<tr><td>${i + 1}</td><td>第${x.ep}集</td><td>${x.title || "--"}</td><td>${x.date}</td>` +
-        `<td class="num" style="color:#ef4444">+${fmt(x.inc)}</td></tr>`).join("") + `</table>`;
+        `<td class="num" style="color:${UP}">+${fmt(x.inc)}</td></tr>`).join("") + `</table>`;
   }
 }
 async function loadReview() {
@@ -322,7 +413,7 @@ async function loadReview() {
 }
 
 function renderOverview(d) {
-  if (!d || !d.ep_count) { $("bigStats").innerHTML = '<div class="chip"><span>真实快照</span><b>0 条</b><i>等待采集入库…</i></div>'; return; }    const le = d.latest_ep || {};
+  if (!d || !d.ep_count) { $("bigStats").innerHTML = '<div class="chip"><span>真实快照</span><b>0 条</b><i>静候采集入库…</i></div>'; return; }    const le = d.latest_ep || {};
     const years = (d.span_days / 365.25).toFixed(1);
     $("bigStats").innerHTML =
       `<div class="chip"><span>累计播放（主线${d.ep_count}集）</span><b>${fmt(d.totals.views)}</b><i>快照 ${dt(d.snapshot_ts)}</i></div>` +
@@ -384,7 +475,7 @@ function renderTop(key, data) {
 function renderLatest(d) {
   if (!d) return;
   const strip = $("latestStrip");
-  if (!d.items.length) { strip.innerHTML = `<span class="muted">等待首轮采集入库…</span>`; return; }
+  if (!d.items.length) { strip.innerHTML = `<span class="muted">静候首轮采集入库…</span>`; return; }
   strip.innerHTML = d.items.slice(0, 8).map(i =>
     `<span class="chip mini"><b>第${i.ep}集</b>播放 ${fmt(i.view)} · 弹幕 ${fmt(i.danmaku)}</span>`).join("");
 }
@@ -404,7 +495,7 @@ async function boot() {
   } else {
     d = await (await fetch("/api/episodes")).json();
   }
-  if (!d) { $("srcBadge").textContent = "数据加载失败，请稍后刷新"; return; }
+  if (!d) { $("srcBadge").textContent = "数据推演失败，请稍后再试"; return; }
   const sel = $("selEp");
   d.episodes.forEach(e => {
     const o = document.createElement("option");
@@ -428,7 +519,7 @@ async function boot() {
 }
 
 async function load() {
-  $("loading").textContent = "加载中…";
+  $("loading").innerHTML = '<span class="taiji"></span>运转灵力…';
   try {
     if (STATIC) {
       const ep = $("selEp").value;
@@ -448,7 +539,7 @@ async function load() {
     pendingRender = false;
     render();
   } catch (e) {
-    $("loading").textContent = "加载失败：" + e.message;
+    $("loading").textContent = "推演失败：" + e.message;
     return;
   }
   $("loading").textContent = "";
@@ -460,10 +551,10 @@ function render() {
   const wrap = $("chart");
   chart = LightweightCharts.createChart(wrap, {
     width: wrap.clientWidth, height: wrap.clientHeight,
-    layout: { background: { type: "solid", color: "#0d1117" }, textColor: "#8b98a9", fontSize: 12 },
-    grid: { vertLines: { color: "#161c26" }, horzLines: { color: "#161c26" } },
-    rightPriceScale: { borderColor: "#1f2733" },
-    timeScale: { borderColor: "#1f2733", timeVisible: current.mode === "intraday", secondsVisible: false, rightOffset: 4 },
+    layout: { background: { type: "solid", color: C_BG }, textColor: "#94849f", fontSize: 12 },
+    grid: { vertLines: { color: C_GRID }, horzLines: { color: C_GRID } },
+    rightPriceScale: { borderColor: C_LINE },
+    timeScale: { borderColor: C_LINE, timeVisible: current.mode === "intraday", secondsVisible: false, rightOffset: 4 },
     crosshair: { mode: 0 },
     localization: { locale: "zh-CN" },
   });
@@ -476,14 +567,14 @@ function render() {
   $("empty").style.display = hasData ? "none" : "flex";
   renderStats();
   const kb = $("klineBadge");
-  if (!hasData) { kb.textContent = "尚无数据（等待采集）"; kb.className = "tag none"; $("legend").innerHTML = ""; return; }
-  kb.textContent = `真实数据 · 已积累 ${m.points ?? "?"} 点`;
+  if (!hasData) { kb.textContent = "尚无数据（静候采集）"; kb.className = "tag none"; $("legend").innerHTML = ""; return; }
+  kb.textContent = `真实数据 · 已凝 ${m.points ?? "?"} 点`;
   kb.className = "tag real";
 
   if (current.mode === "intraday") {
     mainSeries = chart.addAreaSeries({
-      lineColor: "#f0b429", topColor: "rgba(240,180,41,0.35)",
-      bottomColor: "rgba(240,180,41,0.02)", lineWidth: 2, priceFormat: priceFmt,
+      lineColor: GOLD, topColor: "rgba(212,168,75,0.28)",
+      bottomColor: "rgba(212,168,75,0.02)", lineWidth: 2, priceFormat: priceFmt,
     });
     mainSeries.setData(current.intraday || []);
     $("legend").innerHTML = `累计${current.metric_label}分时 <span class="muted">${m.date || ""}</span>`;
@@ -500,11 +591,11 @@ function render() {
   volSeries.applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
   const cmap = Object.fromEntries(current.candles.map(c => [c.time, c.close >= c.open]));
   volSeries.setData(current.volume.map(v => ({
-    ...v, color: cmap[v.time] ? "rgba(239,68,68,0.5)" : "rgba(34,197,94,0.5)",
+    ...v, color: cmap[v.time] ? "rgba(201,58,55,0.45)" : "rgba(58,139,92,0.40)",
   })));
   const showMA = $("chkMA").checked;
-  ma5Series = chart.addLineSeries({ color: "#f0b429", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-  ma10Series = chart.addLineSeries({ color: "#7c8ee0", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  ma5Series = chart.addLineSeries({ color: GOLD, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  ma10Series = chart.addLineSeries({ color: JADE, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
   ma5Series.setData(showMA ? current.ma5 : []);
   ma10Series.setData(showMA ? current.ma10 : []);
   chart.subscribeCrosshairMove(param => {
@@ -532,7 +623,7 @@ function setLegend(c, v) {
 function renderStats() {
   const m = current.meta || {};
   if (!m.points) {
-    $("stats").innerHTML = `<div class="chip"><span>真实快照</span><b>0 条</b><i>数据站定时自动采集</i></div>`;
+    $("stats").innerHTML = `<div class="chip"><span>真实快照</span><b>0 条</b><i>数据站定时周天采集</i></div>`;
     return;
   }
   const incChip = m.today_inc == null ? "" :
@@ -540,9 +631,9 @@ function renderStats() {
     `<i style="color:${(m.today_vs_prev_pct ?? 0) >= 0 ? UP : DOWN}">较昨日 ${pct(m.today_vs_prev_pct)}</i></div>`;
   const since = m.first_ts ? new Date(m.first_ts * 1000).toLocaleDateString("zh-CN") : "--";
   $("stats").innerHTML =
-    `<div class="chip"><span>累计${current.metric_label} <span class="tag real">真实</span></span><b>${fmt(m.latest_view)}</b>` +
+    `<div class="chip"><span>累计${current.metric_label} <span class="tag real">真 · 实测</span></span><b>${fmt(m.latest_view)}</b>` +
     `<i>采样 ${dt(m.latest_ts)}</i></div>` + incChip +
-    `<div class="chip"><span>采集起点</span><b>${since}</b><i>共 ${m.points} 个采样点</i></div>`;
+    `<div class="chip"><span>开坛之日</span><b>${since}</b><i>共 ${m.points} 个采样点</i></div>`;
 }
 
 /* ───── 观点 ───── */
@@ -567,7 +658,7 @@ function renderDict() {
       body = cat.items.map(([q, a]) =>
         `<div class="dictquote"><div class="q">💬 ${q}</div><div class="a">回应：${a}</div></div>`).join("");
     } else {
-      body = `<ol style="padding-left:20px; line-height:2; color:#c3ccd9">` +
+      body = `<ol style="padding-left:20px; line-height:2; color:var(--text)">` +
         cat.items.map(i => `<li>${i}</li>`).join("") + `</ol>`;
     }
     return `<div class="panel"><h3>${cat.name}</h3>` +
@@ -585,7 +676,7 @@ function staticBadge() {
   const badge = $("autoBadge");
   const g = DERIVED && DERIVED.generated_ts;
   const done = g ? new Date(g * 1000).toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" }) : "--";
-  badge.textContent = `云端定时采集 · 更新于 ${done} · 每2小时一轮`;
+  badge.textContent = `云端周天运转 · 更新于 ${done} · 每2小时一轮`;
   badge.className = "tag";
   badge.title = "采集由 GitHub Actions 定时任务执行，本页只读结果";
 }
@@ -596,20 +687,20 @@ async function pollStatus() {
     const s = await r.json();
     const badge = $("autoBadge");
     if (s.running) {
-      badge.textContent = `自动采集中 ${s.done}/${s.total || "?"}`;
+      badge.textContent = `周天运转中 ${s.done}/${s.total || "?"}`;
       badge.className = "tag real";
     } else if (s.finished_ts) {
       const done = new Date(s.finished_ts * 1000)
         .toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" });
       if (s.interval) {
         const next = Math.max(0, Math.round((s.finished_ts + s.interval - Date.now() / 1000) / 60));
-        badge.textContent = `上次采集 ${done} · 下轮约 ${next} 分钟后`;
+        badge.textContent = `上次运转 ${done} · 下轮约 ${next} 分钟后`;
       } else {
-        badge.textContent = `上次采集 ${done}`;
+        badge.textContent = `上次运转 ${done}`;
       }
       badge.className = "tag";
     } else {
-      badge.textContent = "等待首轮自动采集…";
+      badge.textContent = "静候首轮周天运转…";
       badge.className = "tag";
     }
     clearTimeout(statusTimer);
@@ -622,7 +713,7 @@ async function pollStatus() {
 $("btnRefresh").addEventListener("click", async () => {
   const btn = $("btnRefresh");
   btn.disabled = true;
-  btn.textContent = "刷新中…";
+  btn.textContent = "运转中…";
   try {
     if (STATIC) {
       DERIVED = await fetchJSON(`/data/derived.json?t=${Date.now()}`);
@@ -640,7 +731,7 @@ $("btnRefresh").addEventListener("click", async () => {
     }
   } finally {
     btn.disabled = false;
-    btn.textContent = "刷新数据";
+    btn.textContent = "灵气刷新";
   }
 });
 
