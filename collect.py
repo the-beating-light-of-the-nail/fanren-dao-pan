@@ -17,12 +17,13 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
-os_env_set = __import__("os").environ.setdefault
-os_env_set("FANREN_AUTOCOLLECT", "0")  # 本脚本自持流程，不需要自动采集线程
+os.environ.setdefault("FANREN_AUTOCOLLECT", "0")  # 本脚本自持流程，不需要自动采集线程
 
 import server  # noqa: E402  (复用采集/总览/收评逻辑，保证与本地版口径一致)
 
@@ -32,6 +33,11 @@ EPS_DIR = SITE_DIR / "eps"
 SNAP_FILE = SITE_DIR / "snapshots.json"
 DERIVED_FILE = SITE_DIR / "derived.json"
 META_FILE = SITE_DIR / "season_meta.json"
+SITEMAP_FILE = SITE_DIR / "sitemap.xml"
+
+BASE_URL = "https://fanren.cdqyfdbymn.me"
+# IndexNow 提交密钥：与 public/<key>.txt 保持一致（key 文件随壳部署）
+INDEXNOW_KEY = os.environ.get("FANREN_INDEXNOW_KEY", "")
 
 # 导出行格式：[ts, views, danmaku, reply, coin, likes, favorite, share, src]
 # src: 1=自采(real，小时级) / 0=开源日更回填(import)
@@ -112,9 +118,33 @@ def export_all() -> None:
                          encoding="utf-8")
     DERIVED_FILE.write_text(json.dumps(derived, ensure_ascii=False, separators=(",", ":")),
                             encoding="utf-8")
+
+    # 站点地图：单页站只列首页，lastmod 随本轮采集时间刷新（Worker 代理本文件，无需重新部署）
+    lastmod = datetime.fromtimestamp(derived["generated_ts"]).strftime("%Y-%m-%dT%H:%M:%S+08:00")
+    SITEMAP_FILE.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f'  <url>\n    <loc>{BASE_URL}/</loc>\n'
+        f'    <lastmod>{lastmod}</lastmod>\n'
+        '    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n'
+        '</urlset>\n', encoding="utf-8")
     kb = SNAP_FILE.stat().st_size / 1024
     print(f"[export] snapshots.json {len(per_ep)}集 / {len(rows)}行 / {kb:.0f}KB；"
-          f"derived.json {DERIVED_FILE.stat().st_size / 1024:.0f}KB")
+          f"derived.json {DERIVED_FILE.stat().st_size / 1024:.0f}KB；sitemap lastmod {lastmod}")
+
+
+def ping_indexnow() -> None:
+    """提交首页到 IndexNow（Bing/Yandex 等；百度需站长平台手动添加）。失败不影响数据管线。"""
+    if not INDEXNOW_KEY:
+        return
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            f"https://api.indexnow.org/indexnow?url={BASE_URL}/&key={INDEXNOW_KEY}")
+        with urllib.request.urlopen(req, timeout=15) as r:
+            print(f"[indexnow] HTTP {r.status}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[indexnow] 提交失败（不影响数据管线）：{exc}")
 
 
 def refresh_season_meta() -> None:
@@ -153,6 +183,7 @@ def main() -> None:
 
     refresh_season_meta()  # 采集后再刷新一次，让 derived 用上最新元信息
     export_all()
+    ping_indexnow()
 
 
 if __name__ == "__main__":

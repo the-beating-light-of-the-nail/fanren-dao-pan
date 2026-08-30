@@ -17,6 +17,7 @@ concurrency:
 
 env:
   TZ: Asia/Shanghai
+  FANREN_INDEXNOW_KEY: f8c31c90d8d13fd53ba434e2523c5e75
 
 jobs:
   collect:

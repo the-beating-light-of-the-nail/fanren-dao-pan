@@ -9,6 +9,9 @@ const GH_RAW_BASE =
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/sitemap.xml") {
+      return proxyData(url.pathname, request, env, ctx);
+    }
     if (url.pathname === "/data/derived.json" || url.pathname.startsWith("/data/eps/")) {
       return proxyData(url.pathname, request, env, ctx);
     }
@@ -17,14 +20,18 @@ export default {
 };
 
 async function proxyData(path, request, env, ctx) {
+  // /data/X → 仓库 data/site/X；/sitemap.xml → 仓库 data/site/sitemap.xml
+  const repoPath = path === "/sitemap.xml" ? "/sitemap.xml" : path.slice("/data".length);
+  const contentType = path === "/sitemap.xml" ? "text/xml; charset=utf-8"
+    : "application/json; charset=utf-8";
   const cache = caches.default;
   const hit = await cache.match(request, { ignoreMethod: true });
   if (hit) return hit;
   try {
-    const upstream = await fetch(GH_RAW_BASE + path.slice("/data".length));
+    const upstream = await fetch(GH_RAW_BASE + repoPath);
     if (!upstream.ok) throw new Error("upstream " + upstream.status);
     const resp = new Response(upstream.body, upstream);
-    resp.headers.set("Content-Type", "application/json; charset=utf-8");
+    resp.headers.set("Content-Type", contentType);
     resp.headers.set("Cache-Control", "public, max-age=300");
     ctx.waitUntil(cache.put(request, resp.clone()));
     return resp;

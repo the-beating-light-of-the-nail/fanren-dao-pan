@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://fanren.cdqyfdbymn.me/sitemap.xml
