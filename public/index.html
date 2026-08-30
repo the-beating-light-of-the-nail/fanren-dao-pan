@@ -186,6 +186,16 @@
     border-radius: 3px; padding: 4px 10px; cursor: pointer; font-family: var(--font-gu); font-size: 12.5px;
   }
   #dnZoom:hover { color: var(--gold); }
+  #dnJump {
+    width: 60px; background: var(--bg-deep); color: var(--text);
+    border: 1px solid var(--line-soft); border-radius: 3px; padding: 4px 6px;
+    font-family: var(--font-num); font-size: 13px;
+  }
+  #dnJumpBtn {
+    background: var(--bg-deep); color: var(--text-sub); border: 1px solid var(--line-soft);
+    border-radius: 3px; padding: 4px 10px; cursor: pointer; font-family: var(--font-gu); font-size: 12.5px;
+  }
+  #dnJumpBtn:hover { color: var(--gold); border-color: var(--line); }
   #dnChartWrap {
     position: relative; flex: 1; min-height: 380px; margin: 10px 16px 0;
     border: 1px dashed var(--line); border-radius: 3px; overflow: hidden;
@@ -393,6 +403,10 @@
         <option value="total">累计播放 · 谁的底盘厚</option>
       </select></label>
       <button id="dnZoom" title="在前 45 天爆发段与全生命周期之间切换视野">视野 · 全览</button>
+      <label title="嫌 189 个按钮难翻？输集数回车直达（老集会自动加载长尾段）">直达
+        <input type="number" id="dnJump" min="1" placeholder="集数"> 集
+        <button id="dnJumpBtn">加入</button>
+      </label>
       <span class="muted" title="每条曲线横轴=各自上市第N天；虚线=回填口径（开源日更数据）">点选个股池（至多 8 只，老集懒加载） · 虚线=回填口径</span>
     </div>
     <div class="epchips" id="dnChips"></div>
@@ -742,6 +756,23 @@ const DN_BASE = 1704067200;  // 2024-01-01 UTC · 伪时间轴：第 N 天 = BAS
 let DN_DATA = null, DN_SEL = [], dnChart = null, dnRo = null, dnZoomFull = false;
 const dnLoading = new Set();
 const dnDay = t => Math.round((t - DN_BASE) / 86400);
+
+/* 直达：输集数直接加入对比（含老集懒加载），并滚到对应按钮 */
+function dnJumpGo() {
+  const v = parseInt($("dnJump").value, 10);
+  const total = (window._ALL_EPS || []).length;
+  if (!DN_DATA) { toast("对比数据还在路上，稍候再试", true); return; }
+  if (!v || v < 1 || v > total) { toast(`集数需在 1~${total} 之间`, true); return; }
+  if (DN_SEL.includes(v)) { toast(`第${v}集已在列`, true); return; }
+  toggleDnEp(v);
+  $("dnJump").value = "";
+  setTimeout(() => {
+    const c = document.querySelector(`#dnChips button[data-ep="${v}"]`);
+    if (c) c.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, 350);
+}
+$("dnJumpBtn").addEventListener("click", dnJumpGo);
+$("dnJump").addEventListener("keydown", e => { if (e.key === "Enter") dnJumpGo(); });
 
 async function loadDn() {
   const d = STATIC ? await fetchJSON(`/data/dn.json?t=${Date.now()}`)
