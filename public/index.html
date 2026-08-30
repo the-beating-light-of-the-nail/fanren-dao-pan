@@ -166,6 +166,29 @@
     color: var(--text-sub); padding: 24px;
   }
   #empty .big { font-size: 17px; color: var(--gold); }
+  /* 上市对齐 tab（多集同日起跑叠加） */
+  .epchips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 0; }
+  .epchips button {
+    background: var(--bg-deep); color: var(--text-sub); border: 1px solid var(--line-soft);
+    border-radius: 3px; padding: 4px 10px; cursor: pointer;
+    font-family: var(--font-gu); font-size: 12.5px;
+  }
+  .epchips button:hover { color: var(--gold); border-color: var(--line); }
+  .epchips button.on { color: var(--gold); border-color: var(--gold); background: rgba(212,168,75,.08); }
+  .epchips button.on::before { content: "◆ "; font-size: 10px; }
+  #dnChartWrap {
+    position: relative; flex: 1; min-height: 380px; margin: 10px 16px 0;
+    border: 1px dashed var(--line); border-radius: 3px; overflow: hidden;
+  }
+  #dnChart { position: absolute; inset: 0; }
+  #dnLegend {
+    position: absolute; top: 8px; left: 10px; z-index: 5; max-width: 92%;
+    font: 12px/1.8 var(--font-num); color: var(--text-sub);
+    pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,.85);
+  }
+  #dnLegend b { color: var(--gold); }
+  #dnLegend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  #dnTable { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   footer {
     padding: 12px 16px; color: var(--text-mute); font-size: 12px; line-height: 1.9;
     border-top: 1px solid var(--line-soft); margin-top: 14px;
@@ -226,6 +249,9 @@
     .barrow .sub { display: none; }  /* n=xx 小字手机上略去 */
     #chartWrap { min-height: 340px; margin: 8px 10px 0; }
     #legend { font-size: 11px; left: 6px; right: 6px; }
+    #dnChartWrap { min-height: 340px; margin: 8px 10px 0; }
+    #dnLegend { font-size: 11px; left: 6px; right: 6px; }
+    .epchips { padding: 8px 10px 0; }
     #empty .big { font-size: 15px; }
     .opbanner { margin: 10px; font-size: 12px; }
     .opcard { margin: 10px; padding: 12px; }
@@ -250,6 +276,7 @@
 <nav class="tabs">
   <button data-tab="overview" class="active">大道盘</button>
   <button data-tab="kline">行情K线</button>
+  <button data-tab="dn">上市对齐</button>
   <button data-tab="opinions">◈ 收评专区</button>
   <button data-tab="dict">道典</button>
 </nav>
@@ -343,13 +370,40 @@
     </div>
   </section>
 
-  <!-- ════════ Tab 3: 站长观点（观点层，全部标注个人观点） ════════ -->
+  <!-- ════════ Tab 3: 上市对齐（多集同日起跑叠加，数据层） ════════ -->
+  <section id="tab-dn" class="tab">
+    <div class="opbanner" style="margin-bottom:2px">◈ 同日起跑 · 上市日对齐 —— 个股每日同一时刻开盘，日K天然同一起跑线；「集」这只票各有上市日，
+      故横轴重排为<b>上市第 N 天</b>：上周六上线的 189，其首日行情与 176 当年上线首日并肩而立，方为公平。
+      第1-161集在 2025-10-23 回填墙前已开播、无上市初期行情，不参与对比——本站不给猜。</div>
+    <div class="controls">
+      <span class="tag real" id="dnBadge">对齐中…</span>
+      <label>看法 <select id="selDnMode">
+        <option value="inc" selected>日增播放 · 谁的爆发猛</option>
+        <option value="total">累计播放 · 谁的底盘厚</option>
+      </select></label>
+      <span class="muted" title="每条曲线横轴=各自上市第N天；虚线=回填口径（开源日更数据）">点选个股池（至多 8 只） · 虚线=回填口径</span>
+    </div>
+    <div class="epchips" id="dnChips"></div>
+    <div id="dnChartWrap">
+      <div id="dnLegend"></div>
+      <div id="dnChart"></div>
+    </div>
+    <div class="panel">
+      <h3>起跑线数据表</h3>
+      <div class="note">口径：「两日存量」=上市满 48 小时累计播放；D+N 列=上市第 N 天的 24 小时日增（万）。
+        标 * 者为回填口径（其首日绝对值偏大，看形状勿抠数）。多数集上线头 1-2 日未被当时的日更数据收录
+        （首见常为周一），曲线自 D+2 起步——真实缺失，不做补猜。周六 11:00 为 B 站视频上线时刻（会员争先日）。</div>
+      <div id="dnTable"></div>
+    </div>
+  </section>
+
+  <!-- ════════ Tab 4: 站长观点（观点层，全部标注个人观点） ════════ -->
   <section id="tab-opinions" class="tab">
     <div class="opbanner">◈ 以下皆为站长一家之言，带立场、可辩驳。本站数据层与观点层互不相涉：数据页涨跌如实呈现，观点页只代表她自己。</div>
     <div id="opinionCards"></div>
   </section>
 
-  <!-- ════════ Tab 4: 词典（传播弹药库） ════════ -->
+  <!-- ════════ Tab 5: 词典（传播弹药库） ════════ -->
   <section id="tab-dict" class="tab">
     <div class="opbanner" style="border-color:rgba(58,139,92,.5); color:var(--down)">◈ 凡人股民道典 · 梗是语气，数字是数据——玩梗请配合站内真实行情使用</div>
     <div id="dictBody"></div>
@@ -397,6 +451,7 @@ document.querySelectorAll(".tabs button").forEach(btn => {
     document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b === btn));
     document.querySelectorAll(".tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + btn.dataset.tab));
     if (btn.dataset.tab === "kline" && pendingRender && current) { pendingRender = false; render(); }
+    if (btn.dataset.tab === "dn" && dnPending) { dnPending = false; renderDn(); }
   });
 });
 
@@ -522,6 +577,7 @@ async function boot() {
     loadOverview(); loadLatest(); loadReview(); pollStatus();
   }
   renderOpinions(); renderDict();
+  loadDn();              // 上市对齐页签数据（异步，不阻塞K线）
   await load();          // 数据先取好
   pendingRender = true;  // K 线在首次切到该 tab 时渲染（隐藏容器尺寸为 0）
 }
@@ -642,6 +698,136 @@ function renderStats() {
     `<div class="chip"><span>累计${current.metric_label} <span class="tag real">真 · 实测</span></span><b>${fmt(m.latest_view)}</b>` +
     `<i>采样 ${dt(m.latest_ts)}</i></div>` + incChip +
     `<div class="chip"><span>开坛之日</span><b>${since}</b><i>共 ${m.points} 个采样点</i></div>`;
+}
+
+/* ───── 上市对齐（D+N 多集叠加：横轴=各自上市第 N 天） ───── */
+const DN_COLORS = ["#d4a84b", "#5dbaaf", "#c93a37", "#3a8b5c", "#b48ead", "#d07a3a", "#5b8bd0", "#c76b95"];
+const DN_MAX = 8;
+const DN_BASE = 1704067200;  // 2024-01-01 UTC · 伪时间轴：第 N 天 = BASE + N*86400
+let DN_DATA = null, DN_SEL = [], dnChart = null, dnRo = null, dnPending = false;
+const dnDay = t => Math.round((t - DN_BASE) / 86400);
+
+async function loadDn() {
+  const d = STATIC ? await fetchJSON(`/data/dn.json?t=${Date.now()}`)
+    : await (await fetch("/api/dn")).json().catch(() => null);
+  if (!d || !d.eps || !Object.keys(d.eps).length) {
+    $("dnBadge").textContent = "对齐数据未就绪（静候下轮周天采集）";
+    $("dnBadge").className = "tag none";
+    return;
+  }
+  DN_DATA = d;
+  const keys = Object.keys(d.eps).map(Number).sort((a, b) => a - b);
+  DN_SEL = keys.slice(-6);  // 默认最近 6 集
+  const chips = $("dnChips");
+  chips.innerHTML = "";
+  keys.forEach(ep => {
+    const b = document.createElement("button");
+    b.textContent = `第${ep}集`;
+    b.dataset.ep = ep;
+    b.title = d.eps[ep].title || "";
+    b.addEventListener("click", () => toggleDnEp(ep));
+    chips.appendChild(b);
+  });
+  $("selDnMode").addEventListener("change", renderDn);
+  refreshDnChips();
+  const g = d.updated_ts ? new Date(d.updated_ts * 1000).toLocaleString("zh-CN", { hour12: false }) : "--";
+  $("dnBadge").textContent = `同日起跑 · ${keys.length} 只有上市行情 · ${g}`;
+  $("dnBadge").className = "tag real";
+  dnPending = true;  // 隐藏容器尺寸为 0，首次切到该 tab 时再渲染
+  if ($("tab-dn").classList.contains("active")) { dnPending = false; renderDn(); }
+}
+
+function toggleDnEp(ep) {
+  const i = DN_SEL.indexOf(ep);
+  if (i >= 0) DN_SEL.splice(i, 1);
+  else if (DN_SEL.length >= DN_MAX) { toast(`至多同列 ${DN_MAX} 只，先取消一只再选`, true); return; }
+  else DN_SEL.push(ep);
+  refreshDnChips();
+  renderDn();
+}
+
+function refreshDnChips() {
+  document.querySelectorAll("#dnChips button").forEach(b =>
+    b.classList.toggle("on", DN_SEL.includes(+b.dataset.ep)));
+}
+
+function renderDn() {
+  if (!DN_DATA) return;
+  if (dnChart) { dnChart.remove(); dnChart = null; }
+  if (dnRo) dnRo.disconnect();
+  const wrap = $("dnChart");
+  dnChart = LightweightCharts.createChart(wrap, {
+    width: wrap.clientWidth, height: wrap.clientHeight,
+    layout: { background: { type: "solid", color: C_BG }, textColor: "#94849f", fontSize: 12 },
+    grid: { vertLines: { color: C_GRID }, horzLines: { color: C_GRID } },
+    rightPriceScale: { borderColor: C_LINE },
+    timeScale: { borderColor: C_LINE, rightOffset: 3, tickMarkFormatter: t => "D+" + dnDay(t) },
+    crosshair: { mode: 0 },
+    localization: {
+      locale: "zh-CN",
+      timeFormatter: t => "上市第 " + dnDay(t) + " 天",
+      priceFormatter: v => fmt(v * 1e4),
+    },
+  });
+  dnRo = new ResizeObserver(() => dnChart && dnChart.applyOptions({ width: wrap.clientWidth, height: wrap.clientHeight }));
+  dnRo.observe(wrap);
+
+  const mode = $("selDnMode").value;
+  const datas = [];
+  DN_SEL.forEach((ep, i) => {
+    const e = DN_DATA.eps[ep];
+    if (!e) return;
+    const color = DN_COLORS[i % DN_COLORS.length];
+    const imp = e.series.some(r => r[3]);  // 含回填口径段 → 虚线
+    const s = dnChart.addLineSeries({
+      color, lineWidth: 2, priceLineVisible: false, lineStyle: imp ? 2 : 0,
+    });
+    const pts = e.series.filter(r => mode === "total" || r[1] != null)
+      .map(r => ({ time: DN_BASE + r[0] * 86400, value: mode === "total" ? r[2] : r[1] }));
+    s.setData(pts);
+    datas.push({ ep, s, pts, color, imp });
+  });
+  dnChart.subscribeCrosshairMove(p => setDnLegend(p.time ? dnDay(p.time) : null, datas, p));
+  setDnLegend(null, datas, null);
+  try {  // 默认聚焦上市后前 45 天的爆发段；点太少时退回全览
+    dnChart.timeScale().setVisibleRange({ from: DN_BASE, to: DN_BASE + 45 * 86400 });
+  } catch (e) { dnChart.timeScale().fitContent(); }
+  renderDnTable();
+}
+
+function setDnLegend(day, datas, param) {
+  const el = $("dnLegend");
+  if (!datas.length) { el.innerHTML = ""; return; }
+  const head = day != null ? `<b>上市第 ${day} 天</b>　` : `<b>各集末点</b>　`;
+  el.innerHTML = head + datas.map(d => {
+    let v = null;
+    if (param && param.seriesData) { const pt = param.seriesData.get(d.s); v = pt ? pt.value : null; }
+    if (v == null && d.pts.length) v = d.pts[d.pts.length - 1].value;
+    return `<span class="dot" style="background:${d.color}"></span>第${d.ep}集${d.imp ? "（回填）" : ""} ${v == null ? "--" : fmt(v * 1e4)}`;
+  }).join("　");
+}
+
+function renderDnTable() {
+  if (!DN_DATA) return;
+  const pickGain = (arr, n) => arr.filter(r => r[1] != null && Math.abs(r[0] - n) <= 1)
+    .sort((a, b) => Math.abs(a[0] - n) - Math.abs(b[0] - n))[0] || null;
+  const cum2 = arr => arr.filter(r => r[0] >= 2 && r[0] <= 4).sort((a, b) => a[0] - b[0])[0] || null;
+  const cols = [3, 7, 14, 30];
+  const rows = DN_SEL.map(ep => {
+    const e = DN_DATA.eps[ep];
+    if (!e) return "";
+    const pd = new Date(e.pub * 1000).toLocaleDateString("zh-CN");
+    const c2 = cum2(e.series);
+    return `<tr><td>第${ep}集</td><td>${pd}</td>` +
+      `<td class="num">${c2 ? Math.round(c2[2]) + "万" : "--"}</td>` +
+      cols.map(n => {
+        const r = pickGain(e.series, n);
+        return r ? `<td class="num">${r[1].toFixed(1)}${r[3] ? "*" : ""}</td>` : `<td class="num">--</td>`;
+      }).join("") + `</tr>`;
+  }).join("");
+  $("dnTable").innerHTML = `<table class="mini">` +
+    `<tr><th>集数</th><th>上市日</th><th class="num">两日存量</th>` +
+    cols.map(n => `<th class="num">D+${n} 日增</th>`).join("") + `</tr>${rows}</table>`;
 }
 
 /* ───── 观点 ───── */

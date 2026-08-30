@@ -495,6 +495,68 @@ def _season_meta() -> tuple[dict, list]:
     return meta, sections
 
 
+def _compute_dn(max_day: int = 180) -> dict:
+    """上市日对齐（D+N）序列：每集日增/累计播放按「上市第 N 天」重排，供多集叠加对比。
+
+    口径与 K 线一致：同日自采(real)优先、每日取最接近日中的一条快照；
+    相邻日快照跨度 0.85~1.15 天才计为一日增量，否则该日增量置空（缺日不给猜）。
+    只收首条快照距上市 ≤30 天的集：回填墙(2025-10-23)前开播的老集没有上市
+    初期行情，不参与对比。series 行：[N天, 日增万|None, 累计万, 回填标记]。"""
+    eps = {e["ep_index"]: e for e in load_episodes()["episodes"]}
+    with _lock:
+        rows = db().execute(
+            "SELECT ep_index, ts, views, source FROM snapshots ORDER BY ep_index, ts"
+        ).fetchall()
+
+    def day_key(ts: int) -> str:
+        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+
+    by_ep: dict[int, list] = {}
+    for ep, ts, v, src in rows:
+        by_ep.setdefault(ep, []).append((ts, v, src))
+    out: dict = {}
+    for ep, items in by_ep.items():
+        e = eps.get(ep) or {}
+        pub = int(e.get("pub") or 0)
+        if not pub or not items:
+            continue
+        real_days = {day_key(t) for t, _v, s in items if s == "real"}
+        items = [(t, v, s) for t, v, s in items
+                 if s != "import" or day_key(t) not in real_days]
+        if not items or (items[0][0] - pub) / 86400 > 30:  # 首见即上市满月后：纯长尾段
+            continue
+        by_day: dict[str, list] = {}
+        for t, v, s in items:
+            by_day.setdefault(day_key(t), []).append((t, v, s))
+        days = sorted(by_day.items())
+        daily = []
+        for i, (_d, lst) in enumerate(days):
+            if i == len(days) - 1:  # 最近一天取最新快照：新上市集的「今日」还在生长
+                daily.append(max(lst, key=lambda x: x[0]))
+            else:  # 历史日取最接近日中的一快照，保证日增是完整 24h 口径
+                daily.append(min(lst, key=lambda x: abs(datetime.fromtimestamp(x[0]).hour - 12)))
+        series, prev = [], None
+        for t, v, s in daily:
+            n = int((t - pub) // 86400)
+            if n > max_day:
+                break
+            gain = None
+            if prev and 0.85 < (t - prev[0]) / 86400 < 1.15:
+                gain = round((v - prev[1]) / 1e4, 1)
+            series.append([n, gain, round(v / 1e4, 1), 1 if s == "import" else 0])
+            prev = (t, v)
+        if series:
+            out[str(ep)] = {"pub": pub, "title": (e.get("title") or "").strip(),
+                            "series": series}
+    return {"updated_ts": int(time.time()), "eps": out}
+
+
+@app.get("/api/dn")
+def api_dn():
+    """上市日对齐叠加序列（D+N）：多集「同日起跑」对比的数据源。"""
+    return _compute_dn()
+
+
 @app.get("/api/overview")
 def api_overview():
     """数据总览：全剧总量、半年度走势（折算满龄）、篇章互动率、留存漏斗。全部来自真实快照。"""

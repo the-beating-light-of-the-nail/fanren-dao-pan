@@ -28,6 +28,7 @@ def main() -> None:
     data_dir = DIST / "data"
     data_dir.mkdir(exist_ok=True)
     shutil.copy2(SITE / "derived.json", data_dir / "derived.json")
+    shutil.copy2(SITE / "dn.json", data_dir / "dn.json")
     shutil.copytree(SITE / "eps", data_dir / "eps", dirs_exist_ok=True)
 
     n_files = sum(1 for _ in DIST.rglob("*") if _.is_file())

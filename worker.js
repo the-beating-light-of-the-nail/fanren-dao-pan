@@ -12,7 +12,8 @@ export default {
     if (url.pathname === "/sitemap.xml") {
       return proxyData(url.pathname, request, env, ctx);
     }
-    if (url.pathname === "/data/derived.json" || url.pathname.startsWith("/data/eps/")) {
+    if (url.pathname === "/data/derived.json" || url.pathname === "/data/dn.json"
+        || url.pathname.startsWith("/data/eps/")) {
       return proxyData(url.pathname, request, env, ctx);
     }
     return env.ASSETS.fetch(request);

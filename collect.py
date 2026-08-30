@@ -32,6 +32,7 @@ SITE_DIR = ROOT / "data" / "site"
 EPS_DIR = SITE_DIR / "eps"
 SNAP_FILE = SITE_DIR / "snapshots.json"
 DERIVED_FILE = SITE_DIR / "derived.json"
+DN_FILE = SITE_DIR / "dn.json"
 META_FILE = SITE_DIR / "season_meta.json"
 SITEMAP_FILE = SITE_DIR / "sitemap.xml"
 
@@ -119,7 +120,10 @@ def export_all() -> None:
     SNAP_FILE.write_text(json.dumps(snap, ensure_ascii=False, separators=(",", ":")),
                          encoding="utf-8")
     DERIVED_FILE.write_text(json.dumps(derived, ensure_ascii=False, separators=(",", ":")),
-                            encoding="utf-8")
+                         encoding="utf-8")
+    # 上市日对齐（D+N）叠加序列：前端「上市对齐」页签的数据源
+    DN_FILE.write_text(json.dumps(server._compute_dn(), ensure_ascii=False,
+                                  separators=(",", ":")), encoding="utf-8")
 
     # 站点地图：单页站只列首页，lastmod 随本轮采集时间刷新（Worker 代理本文件，无需重新部署）
     lastmod = datetime.fromtimestamp(derived["generated_ts"]).strftime("%Y-%m-%dT%H:%M:%S+08:00")
