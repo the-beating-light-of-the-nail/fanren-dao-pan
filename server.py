@@ -224,7 +224,7 @@ def api_kline(ep: Optional[int] = None, days: int = 90, mode: str = "inc",
 
     base = {"ep": ep, "title": title, "mode": mode, "freq": freq, "days": days,
             "metric": metric, "metric_label": metric_label,
-            "candles": [], "volume": [], "ma5": [], "ma10": [], "intraday": [],
+            "candles": [], "bars": [], "volume": [], "ma5": [], "ma10": [], "intraday": [],
             "meta": {"points": len(rows)}}
     if not rows:
         return base
@@ -270,11 +270,12 @@ def api_kline(ep: Optional[int] = None, days: int = 90, mode: str = "inc",
             b["dincs"].append(dan - prev_dan)
         prev_view, prev_dan = view, dan
 
-    candles, volume, closes = [], [], []
+    candles, volume, closes, bars = [], [], [], []
     prev_close = None
     for d, b in by_day.items():
         if not b["incs"]:
             continue  # 没有基线的第一天（无上一样本），算不出增量，跳过
+        bars.append({"time": d, "value": sum(b["incs"])})  # 桶总增量（日增柱状图的柱高）
         if mode == "total":
             c = b["vlast"]
             # 日更粒度（source=import 的历史快照）没有日内采样，开盘沿用上一周期收盘
@@ -299,8 +300,10 @@ def api_kline(ep: Optional[int] = None, days: int = 90, mode: str = "inc",
     day_incs = [sum(b["incs"]) for b in by_day.values()]
     today_inc = day_incs[-1] if day_incs else 0
     prev_inc = day_incs[-2] if len(day_incs) > 1 else 0
-    base["candles"], base["volume"] = candles, volume
-    base["ma5"], base["ma10"] = _ma(closes, 5), _ma(closes, 10)
+    base["candles"], base["bars"], base["volume"] = candles, bars, volume
+    # MA 跟随主图形态：inc=日增柱的均增量，total=累计曲线的均累计
+    ma_src = closes if mode == "total" else [(b["time"], b["value"]) for b in bars]
+    base["ma5"], base["ma10"] = _ma(ma_src, 5), _ma(ma_src, 10)
     base["meta"].update({
         "latest_view": rows[-1][1], "latest_ts": rows[-1][0],
         "first_ts": rows[0][0],

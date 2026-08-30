@@ -347,14 +347,14 @@
       </label>
       <label>法门
         <select id="selMode">
-          <option value="inc" selected>日增播放 K线</option>
-          <option value="total">累计播放 K线</option>
+          <option value="inc" selected>日增播放 · 柱状</option>
+          <option value="total">累计播放 · 曲线</option>
           <option value="intraday">当日分时</option>
         </select>
       </label>
-      <label>K线 <select id="selFreq" title="日K=每个采集日一根蜡烛；周K=按自然周聚合（key=周一日期）">
-        <option value="day" selected>日K</option>
-        <option value="week">周K</option>
+      <label>周期 <select id="selFreq" title="按日=每个采集日一根柱；按周=按自然周聚合（key=周一日期）">
+        <option value="day" selected>按日</option>
+        <option value="week">按周</option>
       </select></label>
       <label>周天
         <select id="selDays">
@@ -366,7 +366,7 @@
         <span style="color:var(--gold)">MA5</span> / <span style="color:var(--jade)">MA10</span>
       </label>
       <span id="loading" class="muted"></span>
-      <span class="muted" title="2026-08-30 起为小时级自采；更早为开源仓库日更快照（无日内采样，开盘价衔接上一周期收盘）">蜡烛=1个采集日 · 新数据小时级采样 · 历史为日更粒度</span>
+      <span class="muted" title="柱高=该采集日（按周=该自然周）的总增量，由相邻快照的累计值相减而得，跨缺口不折算；2026-08-30 起为小时级自采，更早为开源仓库日更快照">柱=1个采集日的总增量 · 新数据小时级采样 · 历史为日更粒度</span>
     </div>
     <div class="stats" id="stats"></div>
     <div id="chartWrap">
@@ -660,42 +660,63 @@ function render() {
     return;
   }
 
-  mainSeries = chart.addCandlestickSeries({
-    upColor: UP, downColor: DOWN, wickUpColor: UP, wickDownColor: DOWN,
-    borderUpColor: UP, borderDownColor: DOWN, priceFormat: priceFmt,
-  });
-  mainSeries.setData(current.candles);
+  // 主图形态跟随数据本相：日增=柱状（柱高=当日总增量，红涨绿跌）；累计=面积曲线
+  const bars = (current.bars && current.bars.length ? current.bars
+    : current.candles.map(c => ({ time: c.time, value: c.close })));
+  if (current.mode === "total") {
+    mainSeries = chart.addAreaSeries({
+      lineColor: GOLD, topColor: "rgba(212,168,75,0.28)",
+      bottomColor: "rgba(212,168,75,0.02)", lineWidth: 2, priceFormat: priceFmt,
+    });
+    mainSeries.setData(current.candles.map(c => ({ time: c.time, value: c.close })));
+  } else {
+    mainSeries = chart.addHistogramSeries({ priceFormat: priceFmt });
+    let prevBar = null;
+    mainSeries.setData(bars.map(b => {
+      const color = (prevBar == null || b.value >= prevBar)
+        ? "rgba(201,58,55,0.80)" : "rgba(58,139,92,0.80)";
+      prevBar = b.value;
+      return { time: b.time, value: b.value, color };
+    }));
+  }
   volSeries = chart.addHistogramSeries({ priceScaleId: "vol", priceFormat: priceFmt });
   volSeries.applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
-  const cmap = Object.fromEntries(current.candles.map(c => [c.time, c.close >= c.open]));
   volSeries.setData(current.volume.map(v => ({
-    ...v, color: cmap[v.time] ? "rgba(201,58,55,0.45)" : "rgba(58,139,92,0.40)",
+    ...v, color: v.value >= 0 ? "rgba(201,58,55,0.45)" : "rgba(58,139,92,0.40)",
   })));
   const showMA = $("chkMA").checked;
   ma5Series = chart.addLineSeries({ color: GOLD, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
   ma10Series = chart.addLineSeries({ color: JADE, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
   ma5Series.setData(showMA ? current.ma5 : []);
   ma10Series.setData(showMA ? current.ma10 : []);
-  chart.subscribeCrosshairMove(param => {
-    if (!param.time) { setLegend(current.candles.at(-1) || null); return; }
-    setLegend(current.candles.find(x => x.time === param.time) || null,
-              current.volume.find(v => v.time === param.time) || null);
-  });
-  setLegend(current.candles.at(-1) || null, current.volume.at(-1) || null);
+  const lastTime = (current.candles.at(-1) || {}).time;
+  chart.subscribeCrosshairMove(param => setLegend(param.time || lastTime));
+  setLegend(lastTime);
   chart.timeScale().fitContent();
 }
 
-function setLegend(c, v) {
+function setLegend(time) {
   const el = $("legend");
-  if (!c) { el.innerHTML = ""; return; }
-  const chg = c.open ? (c.close - c.open) / Math.abs(c.open) * 100 : 0;
-  const volLabel = current.metric === "views" ? "VOL(弹幕增量)" : "VOL(播放增量)";
-  const when = current.freq === "week" ? c.time + " 当周" : c.time;
-  el.innerHTML =
-    `<b>第${current.ep}集 ${when} · ${current.metric_label}</b>　` +
-    `开 ${fmt(c.open)}　高 ${fmt(c.high)}　低 ${fmt(c.low)}　收 ${fmt(c.close)}　` +
-    `<span style="color:${chg >= 0 ? UP : DOWN}">${pct(chg)}</span>` +
-    (v ? `　${volLabel} ${fmt(v.value)}` : "");
+  if (!time) { el.innerHTML = ""; return; }
+  const when = current.freq === "week" ? time + " 当周" : time;
+  const bars = current.bars || [];
+  const bar = bars.find(b => b.time === time);
+  const vol = current.volume.find(v => v.time === time);
+  const volLabel = current.metric === "views" && current.mode === "inc"
+    ? "VOL(弹幕增量)" : "VOL(播放增量)";
+  const head = `<b>第${current.ep}集 ${when} · ${current.metric_label}</b>　`;
+  if (current.mode === "total") {
+    const c = current.candles.find(x => x.time === time);
+    el.innerHTML = head + `累计 ${c ? fmt(c.close) : "--"}` +
+      (bar ? `　当期增 <span style="color:${UP}">${fmt(bar.value)}</span>` : "");
+    return;
+  }
+  const i = bars.findIndex(b => b.time === time);
+  const prev = i > 0 ? bars[i - 1].value : null;
+  const chg = (bar && prev) ? (bar.value - prev) / Math.abs(prev) * 100 : null;
+  el.innerHTML = head + `日增 ${bar ? fmt(bar.value) : "--"}` +
+    (chg != null ? `　<span style="color:${chg >= 0 ? UP : DOWN}">较前${pct(chg)}</span>` : "") +
+    (vol ? `　${volLabel} ${fmt(vol.value)}` : "");
 }
 
 function renderStats() {

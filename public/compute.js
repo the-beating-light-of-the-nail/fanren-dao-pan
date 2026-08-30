@@ -44,7 +44,7 @@ window.FanrenCompute = (function () {
     rows = rows.filter(r => r[3] !== 0 || !realDays.has(shDate(r[0])));
 
     const base = { ep: epFile.ep, title: epFile.title, mode, freq, days,
-                   metric, metric_label: label, candles: [], volume: [],
+                   metric, metric_label: label, candles: [], bars: [], volume: [],
                    ma5: [], ma10: [], intraday: [], meta: { points: rows.length } };
     if (!rows.length) return base;
     const last = rows[rows.length - 1];
@@ -76,10 +76,11 @@ window.FanrenCompute = (function () {
       pv = v; pvol = vol;
     }
 
-    const candles = [], volume = [], closes = [];
+    const candles = [], volume = [], closes = [], bars = [];
     let prevClose = null;
     for (const [d, b] of byDay) {
       if (!b.incs.length) continue; // 无上一样本基线的第一天，算不出增量
+      bars.push({ time: d, value: sum(b.incs) });  // 桶总增量（日增柱状图的柱高）
       let o, c, h, l, vol;
       if (mode === "total") {
         c = b.vlast;
@@ -105,8 +106,10 @@ window.FanrenCompute = (function () {
     }
 
     const dayIncs = [...byDay.values()].map(b => sum(b.incs));
-    base.candles = candles; base.volume = volume;
-    base.ma5 = ma(closes, 5); base.ma10 = ma(closes, 10);
+    base.candles = candles; base.bars = bars; base.volume = volume;
+    // MA 跟随主图形态：inc=日增柱的均增量，total=累计曲线的均累计
+    const maSrc = mode === "total" ? closes : bars.map(x => [x.time, x.value]);
+    base.ma5 = ma(maSrc, 5); base.ma10 = ma(maSrc, 10);
     Object.assign(base.meta, {
       latest_view: last[1], latest_ts: last[0], first_ts: rows[0][0],
       today_inc: dayIncs.length ? dayIncs[dayIncs.length - 1] : 0,
