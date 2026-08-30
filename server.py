@@ -224,7 +224,7 @@ def api_kline(ep: Optional[int] = None, days: int = 90, mode: str = "inc",
 
     base = {"ep": ep, "title": title, "mode": mode, "freq": freq, "days": days,
             "metric": metric, "metric_label": metric_label,
-            "candles": [], "bars": [], "volume": [], "ma5": [], "ma10": [], "intraday": [],
+            "candles": [], "bars": [], "volume": [], "ma7": [], "intraday": [],
             "meta": {"points": len(rows)}}
     if not rows:
         return base
@@ -301,9 +301,9 @@ def api_kline(ep: Optional[int] = None, days: int = 90, mode: str = "inc",
     today_inc = day_incs[-1] if day_incs else 0
     prev_inc = day_incs[-2] if len(day_incs) > 1 else 0
     base["candles"], base["bars"], base["volume"] = candles, bars, volume
-    # MA 跟随主图形态：inc=日增柱的均增量，total=累计曲线的均累计
-    ma_src = closes if mode == "total" else [(b["time"], b["value"]) for b in bars]
-    base["ma5"], base["ma10"] = _ma(ma_src, 5), _ma(ma_src, 10)
+    # MA7（7日均增）：本剧 7 天一周期（周六开播日全站齐涨），窗口取整周期才能抹平周内季节性；
+    # MA5/MA10 是股市 5 交易日的约定，抄过来会跟星期几混叠。累计曲线本身平滑，不叠均线。
+    base["ma7"] = [] if mode == "total" else _ma([(b["time"], b["value"]) for b in bars], 7)
     base["meta"].update({
         "latest_view": rows[-1][1], "latest_ts": rows[-1][0],
         "first_ts": rows[0][0],
@@ -754,8 +754,8 @@ def _compute_review() -> dict:
         today = keys[-1] if keys else ""
         today_inc = days.get(today, 0)
         y_inc = days.get(keys[-2], 0) if len(keys) > 1 else 0
-        hist = [days[k] for k in keys[-6:-1]]
-        ma5 = sum(hist) / len(hist) if hist else None
+        hist = [days[k] for k in keys[-7:-1]]
+        ma7 = sum(hist) / len(hist) if hist else None
         # 日内形状：今天各小时段增量
         today_rows = [r for r in rows
                       if datetime.fromtimestamp(r[0]).strftime("%Y-%m-%d") == today and r[2] == "real"] \
@@ -786,12 +786,12 @@ def _compute_review() -> dict:
                          f"（{_fmt(today_inc)} vs {_fmt(y_inc)}）")
         else:
             parts.append("开播初期，量能对比待积累")
-        if ma5:
-            up = today_inc >= ma5
-            parts.append(f"{'站上' if up else '跌破'}5日均线（MA5 {_fmt(ma5)}）")
+        if ma7:
+            up = today_inc >= ma7
+            parts.append(f"{'站上' if up else '跌破'}7日均线（MA7 {_fmt(ma7)}，周周期口径）")
             parts.append(f"短期趋势{'向上，建议继续持有' if up else '承压，道友可逢低加仓摊薄成本'}")
         else:
-            parts.append("5日均线待样本积累")
+            parts.append("7日均线待样本积累")
         if early:
             parts.append("（早盘数据，盘中持续更新）")
         text = "；".join(parts) + " ——以上均为玩梗，数字真实，不构成任何真实投资建议"

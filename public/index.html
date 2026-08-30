@@ -38,7 +38,7 @@
     --text-mute: #6b5a7a;  /* 更  淡 · 注释 */
     --up:        #c93a37;  /* 朱砂红 · 涨 */
     --down:      #3a8b5c;  /* 翠玉绿 · 跌 */
-    --jade:      #5dbaaf;  /* 青  玉 · MA10 */
+    --jade:      #5dbaaf;  /* 青  玉 */
     /* 古风字体栈：优先系统中文字体，零网络开销，移动端即时生效 */
     --font-gu: "STZhongsong", "STKaiti", "KaiTi", "楷体", "STSong", "SimSun", "宋体",
                "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", serif;
@@ -372,8 +372,8 @@
           <option selected>90</option><option>180</option><option>365</option>
         </select> 日
       </label>
-      <label><input type="checkbox" id="chkMA" checked>
-        <span style="color:var(--gold)">MA5</span> / <span style="color:var(--jade)">MA10</span>
+      <label title="7日均增：窗口取整周期，抹平周六开播日的周内齐涨，剩下的才是真趋势"><input type="checkbox" id="chkMA" checked>
+        <span style="color:var(--gold)">MA7 · 7日均增</span>
       </label>
       <span id="loading" class="muted"></span>
       <span class="muted" title="柱高=该采集日（按周=该自然周）的总增量，由相邻快照的累计值相减而得，跨缺口不折算；2026-08-30~31 为小时级自采，此后每日收盘后（约 23:13）采集一次；更早为开源仓库日更快照">柱=1个采集日的总增量 · 现每日收盘后采集一次 · 历史为日更粒度</span>
@@ -575,7 +575,7 @@ async function loadLatest() {
 }
 
 /* ───── K 线（沿用原逻辑） ───── */
-let chart = null, mainSeries = null, volSeries = null, ma5Series = null, ma10Series = null;
+let chart = null, mainSeries = null, volSeries = null, ma7Series = null;
 let ro = null, current = null;
 
 async function boot() {
@@ -699,10 +699,8 @@ function render() {
     ...v, color: v.value >= 0 ? "rgba(201,58,55,0.45)" : "rgba(58,139,92,0.40)",
   })));
   const showMA = $("chkMA").checked;
-  ma5Series = chart.addLineSeries({ color: GOLD, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-  ma10Series = chart.addLineSeries({ color: JADE, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-  ma5Series.setData(showMA ? current.ma5 : []);
-  ma10Series.setData(showMA ? current.ma10 : []);
+  ma7Series = chart.addLineSeries({ color: GOLD, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  ma7Series.setData(showMA ? current.ma7 : []);
   const lastTime = (current.candles.at(-1) || {}).time;
   chart.subscribeCrosshairMove(param => setLegend(param.time || lastTime));
   setLegend(lastTime);

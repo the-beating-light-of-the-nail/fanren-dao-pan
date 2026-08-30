@@ -1,6 +1,6 @@
 /* 凡人道盘 · 浏览器端K线计算（静态部署模式用）
    —— 逐行移植 server.py /api/kline 的分桶逻辑，时区钉死 Asia/Shanghai（B站时区），
-   与服务器版口径完全一致：同日自采优先、周桶=周一、carry-open、MA5/MA10。 */
+   与服务器版口径完全一致：同日自采优先、周桶=周一、carry-open、MA7。 */
 window.FanrenCompute = (function () {
   const METRIC_LABELS = { views: "播放量", danmaku: "弹幕", likes: "点赞", coin: "投币",
                           favorite: "收藏", share: "分享", reply: "评论" };
@@ -45,7 +45,7 @@ window.FanrenCompute = (function () {
 
     const base = { ep: epFile.ep, title: epFile.title, mode, freq, days,
                    metric, metric_label: label, candles: [], bars: [], volume: [],
-                   ma5: [], ma10: [], intraday: [], meta: { points: rows.length } };
+                   ma7: [], intraday: [], meta: { points: rows.length } };
     if (!rows.length) return base;
     const last = rows[rows.length - 1];
 
@@ -107,9 +107,8 @@ window.FanrenCompute = (function () {
 
     const dayIncs = [...byDay.values()].map(b => sum(b.incs));
     base.candles = candles; base.bars = bars; base.volume = volume;
-    // MA 跟随主图形态：inc=日增柱的均增量，total=累计曲线的均累计
-    const maSrc = mode === "total" ? closes : bars.map(x => [x.time, x.value]);
-    base.ma5 = ma(maSrc, 5); base.ma10 = ma(maSrc, 10);
+    // MA7（7日均增）：与 server.py 同口径——整周期窗口抹平周六开播日的周内季节性；累计曲线不叠均线
+    base.ma7 = mode === "total" ? [] : ma(bars.map(x => [x.time, x.value]), 7);
     Object.assign(base.meta, {
       latest_view: last[1], latest_ts: last[0], first_ts: rows[0][0],
       today_inc: dayIncs.length ? dayIncs[dayIncs.length - 1] : 0,
